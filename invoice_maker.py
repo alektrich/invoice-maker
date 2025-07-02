@@ -282,7 +282,7 @@ class InvoicePDFGenerator:
             totals_data.append([f'Tax ({self.invoice.tax_rate}%):', f"${self.invoice.tax_amount:.2f}"])
         
         # Total
-        totals_data.append(['<b>Total:</b>', f"<b>${self.invoice.total_amount:.2f}</b>"])
+        totals_data.append(['Total:', f"${self.invoice.total_amount:.2f}"])
         
         # Create totals table
         totals_table = Table(totals_data, colWidths=[1.5*inch, 1*inch])
@@ -290,7 +290,8 @@ class InvoicePDFGenerator:
             ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
             ('FONTNAME', (0, 0), (-1, -2), 'Helvetica'),
             ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('FONTSIZE', (0, 0), (-1, -2), 10),
+            ('FONTSIZE', (0, -1), (-1, -1), 12),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
             ('LINEABOVE', (0, -1), (-1, -1), 1, colors.black),
         ]))
