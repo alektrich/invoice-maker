@@ -83,6 +83,8 @@ class Invoice:
     
     @property
     def discount_total(self) -> Decimal:
+        if not self.discounts:
+            return Decimal('0.00')
         return sum(discount.total for discount in self.discounts).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
     
     @property
