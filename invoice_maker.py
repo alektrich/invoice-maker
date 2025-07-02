@@ -232,8 +232,8 @@ class InvoicePDFGenerator:
             data.append([
                 item.description,
                 str(item.quantity),
-                f"{self.invoice.currency}{item.rate:.2f}",
-                f"{self.invoice.currency}{item.total:.2f}"
+                f"{self.invoice.currency} {item.rate:.2f}",
+                f"{self.invoice.currency} {item.total:.2f}"
             ])
         
         # Add discount items (spanning all columns for clean display)
@@ -242,7 +242,7 @@ class InvoicePDFGenerator:
                 discount.description,
                 "",
                 "",
-                f"{self.invoice.currency}{discount.total:.2f}"
+                f"{self.invoice.currency} {discount.total:.2f}"
             ])
         
         # Create table
@@ -275,18 +275,18 @@ class InvoicePDFGenerator:
         totals_data = []
         
         # Subtotal
-        totals_data.append(['Subtotal:', f"{self.invoice.currency}{self.invoice.subtotal:.2f}"])
+        totals_data.append(['Subtotal:', f"{self.invoice.currency} {self.invoice.subtotal:.2f}"])
         
         # Discounts (if any)
         if self.invoice.discounts:
-            totals_data.append(['Discount:', f"{self.invoice.currency}{self.invoice.discount_total:.2f}"])
+            totals_data.append(['Discount:', f"{self.invoice.currency} {self.invoice.discount_total:.2f}"])
         
         # Tax (if applicable)
         if self.invoice.tax_rate > 0:
-            totals_data.append([f'Tax ({self.invoice.tax_rate}%):', f"{self.invoice.currency}{self.invoice.tax_amount:.2f}"])
+            totals_data.append([f'Tax ({self.invoice.tax_rate}%):', f"{self.invoice.currency} {self.invoice.tax_amount:.2f}"])
         
         # Total
-        totals_data.append(['Total:', f"{self.invoice.currency}{self.invoice.total_amount:.2f}"])
+        totals_data.append(['Total:', f"{self.invoice.currency} {self.invoice.total_amount:.2f}"])
         
         # Create totals table
         totals_table = Table(totals_data, colWidths=[1.5*inch, 1*inch])

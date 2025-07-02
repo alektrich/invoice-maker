@@ -87,7 +87,7 @@ def create_sample_invoice():
     generator.generate()
     
     print(f"Sample invoice created: {output_path}")
-    print(f"Invoice total: {invoice.currency}{invoice.total_amount}")
+    print(f"Invoice total: {invoice.currency} {invoice.total_amount}")
 
 if __name__ == "__main__":
     create_sample_invoice()
