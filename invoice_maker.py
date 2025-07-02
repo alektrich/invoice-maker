@@ -164,8 +164,9 @@ class InvoicePDFGenerator:
         issuer_info = self._format_contact_info(self.invoice.issuer, "Bill From:")
         client_info = self._format_contact_info(self.invoice.client, "Bill To:")
         
+        # Use the exact same first column width as the items table for perfect alignment
         parties_data = [[issuer_info, client_info]]
-        parties_table = Table(parties_data, colWidths=[3.5*inch, 3.5*inch])
+        parties_table = Table(parties_data, colWidths=[3.5*inch, 3*inch])
         parties_table.setStyle(TableStyle([
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -299,9 +300,11 @@ class InvoicePDFGenerator:
         ]))
         
         # Right-align the totals table
-        totals_wrapper = Table([[totals_table]], colWidths=[7*inch])
+        totals_wrapper = Table([[totals_table]], colWidths=[6.5*inch])
         totals_wrapper.setStyle(TableStyle([
             ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
         ]))
         
         self.story.append(totals_wrapper)
