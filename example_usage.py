@@ -77,7 +77,8 @@ def create_sample_invoice():
         client=client,
         items=items,
         discounts=discounts,
-        tax_rate=Decimal("8.5")  # 8.5% tax rate
+        tax_rate=Decimal("8.5"),  # 8.5% tax rate
+        currency="€"  # Euro currency
     )
     
     # Generate PDF
@@ -86,7 +87,7 @@ def create_sample_invoice():
     generator.generate()
     
     print(f"Sample invoice created: {output_path}")
-    print(f"Invoice total: ${invoice.total_amount}")
+    print(f"Invoice total: {invoice.currency}{invoice.total_amount}")
 
 if __name__ == "__main__":
     create_sample_invoice()

@@ -75,6 +75,7 @@ class Invoice:
     items: List[InvoiceItem]
     discounts: List[DiscountItem]
     tax_rate: Decimal = Decimal('0.00')  # Tax rate as percentage (e.g., 10.5 for 10.5%)
+    currency: str = "$"  # Currency symbol
     
     @property
     def subtotal(self) -> Decimal:
@@ -231,17 +232,17 @@ class InvoicePDFGenerator:
             data.append([
                 item.description,
                 str(item.quantity),
-                f"${item.rate:.2f}",
-                f"${item.total:.2f}"
+                f"{self.invoice.currency}{item.rate:.2f}",
+                f"{self.invoice.currency}{item.total:.2f}"
             ])
         
-        # Add discount items
+        # Add discount items (spanning all columns for clean display)
         for discount in self.invoice.discounts:
             data.append([
                 discount.description,
-                "1",
-                f"${discount.total:.2f}",
-                f"${discount.total:.2f}"
+                "",
+                "",
+                f"{self.invoice.currency}{discount.total:.2f}"
             ])
         
         # Create table
@@ -274,18 +275,18 @@ class InvoicePDFGenerator:
         totals_data = []
         
         # Subtotal
-        totals_data.append(['Subtotal:', f"${self.invoice.subtotal:.2f}"])
+        totals_data.append(['Subtotal:', f"{self.invoice.currency}{self.invoice.subtotal:.2f}"])
         
         # Discounts (if any)
         if self.invoice.discounts:
-            totals_data.append(['Discount:', f"${self.invoice.discount_total:.2f}"])
+            totals_data.append(['Discount:', f"{self.invoice.currency}{self.invoice.discount_total:.2f}"])
         
         # Tax (if applicable)
         if self.invoice.tax_rate > 0:
-            totals_data.append([f'Tax ({self.invoice.tax_rate}%):', f"${self.invoice.tax_amount:.2f}"])
+            totals_data.append([f'Tax ({self.invoice.tax_rate}%):', f"{self.invoice.currency}{self.invoice.tax_amount:.2f}"])
         
         # Total
-        totals_data.append(['Total:', f"${self.invoice.total_amount:.2f}"])
+        totals_data.append(['Total:', f"{self.invoice.currency}{self.invoice.total_amount:.2f}"])
         
         # Create totals table
         totals_table = Table(totals_data, colWidths=[1.5*inch, 1*inch])
@@ -381,6 +382,9 @@ class InvoiceMaker:
         # Get tax rate
         tax_rate = self._get_decimal("Tax rate percentage (0 for no tax): ", default=Decimal('0'))
         
+        # Get currency
+        currency = self._get_currency()
+        
         # Create invoice
         invoice = Invoice(
             invoice_id=invoice_id,
@@ -390,7 +394,8 @@ class InvoiceMaker:
             client=client,
             items=items,
             discounts=discounts,
-            tax_rate=tax_rate
+            tax_rate=tax_rate,
+            currency=currency
         )
         
         # Generate PDF
@@ -508,6 +513,28 @@ class InvoiceMaker:
                 return Decimal(value_str)
             except:
                 print("Invalid number. Please try again.")
+    
+    def _get_currency(self) -> str:
+        """Get currency selection from user"""
+        currencies = {
+            '1': '$',
+            '2': '€'
+        }
+        
+        print("\n--- Currency Selection ---")
+        print("1. USD ($)")
+        print("2. EUR (€)")
+        
+        while True:
+            choice = input("Select currency (1-2) [1]: ").strip()
+            
+            if not choice:
+                return '$'  # Default to USD
+            
+            if choice in currencies:
+                return currencies[choice]
+            
+            print("Invalid choice. Please select 1 or 2.")
 
 
 def main():
