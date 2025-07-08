@@ -4,8 +4,6 @@ Invoice Maker - Generate professional invoices in PDF format
 """
 
 import argparse
-import json
-import os
 from datetime import datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from dataclasses import dataclass, asdict
@@ -19,7 +17,7 @@ try:
     from reportlab.lib.units import inch
     from reportlab.lib import colors
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-    from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
+    from reportlab.lib.enums import TA_CENTER
 except ImportError:
     print("Error: ReportLab is required. Install it with: pip install reportlab")
     sys.exit(1)
