@@ -1,170 +1,169 @@
-# Invoice Maker
+# Invoice Generator Web App
 
-A professional Python-based invoice generator that creates beautiful PDF invoices with comprehensive business information.
+A modern, professional invoice generator built with Next.js 15, React 19, TypeScript, and Tailwind CSS. This web application converts the original Python CLI invoice maker into a beautiful, user-friendly web interface.
 
 ## Features
 
-✅ **Complete Contact Information Support**
-- Company name, contact person, and full address
-- Tax ID for both issuer and client
-- Phone and email contact information
+- 🎨 **Modern UI**: Clean, responsive design with Tailwind CSS
+- 📝 **Form Validation**: Comprehensive validation using react-hook-form and Zod
+- 📄 **PDF Generation**: High-quality PDF invoices with improved layout
+- 👀 **Live Preview**: Real-time PDF preview as you edit
+- 💾 **Instant Download**: Download generated PDFs immediately
+- 💰 **Multi-Currency**: Support for multiple currencies (USD, EUR, GBP, JPY, INR)
+- 🧮 **Auto Calculations**: Automatic subtotal, tax, discount, and total calculations
+- 📱 **Responsive**: Works perfectly on desktop, tablet, and mobile devices
 
-✅ **Flexible Invoice Items**
-- Add multiple items with description, quantity, and rate
-- Automatic total calculation per item
-- Support for discount items (negative amounts)
+## Key Improvements over Python CLI
 
-✅ **Tax and Discount Management**
-- Configurable tax rate percentage
-- Multiple discount items support
-- Accurate subtotal and total calculations
+1. **Invoice ID Display**: Shows invoice ID next to the title in the PDF
+2. **Reduced Title Size**: Smaller, more professional title font size
+3. **Web Interface**: No more command-line interaction needed
+4. **Live Preview**: See your invoice as you create it
+5. **Better UX**: Form validation, auto-calculations, and error handling
 
-✅ **Professional PDF Output**
-- Clean, professional invoice layout
-- Proper "Bill From" and "Bill To" sections
-- Detailed items table with headers
-- Tax and discount breakdown
-- Contact information footer
+## Technology Stack
 
-✅ **Invoice Management**
-- Manual invoice ID setting or auto-generation
-- Invoice date and due date configuration
-- Date validation and formatting
+- **Framework**: Next.js 15 (Page Router)
+- **Frontend**: React 19
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Form Handling**: react-hook-form
+- **Validation**: Zod
+- **PDF Generation**: jsPDF
+- **Build Tool**: SWC
 
-## Installation
+## Getting Started
 
-1. **Clone or download this repository**
+### Prerequisites
+
+- Node.js 18.0.0 or later
+- npm or yarn
+
+### Installation
+
+1. **Install dependencies**:
+
    ```bash
-   git clone <repository-url>
-   cd invoice-maker
+   npm install
    ```
 
-2. **Install dependencies**
+2. **Run the development server**:
+
    ```bash
-   pip install -r requirements.txt
+   npm run dev
    ```
+
+3. **Open your browser** and navigate to `http://localhost:3000`
+
+### Building for Production
+
+```bash
+# Build the application
+npm run build
+
+# Start the production server
+npm start
+```
 
 ## Usage
 
-### Interactive Mode (Recommended)
+1. **Fill out the invoice form** with your business information and client details
+2. **Add invoice items** with descriptions, quantities, and rates
+3. **Add discounts** if applicable
+4. **Set tax rate** and currency
+5. **Generate PDF** and see the live preview
+6. **Download** the PDF when you're satisfied
 
-Simply run the script to enter interactive mode:
+## Form Sections
 
-```bash
-python invoice_maker.py
-```
+### Invoice Details
 
-or explicitly:
+- Invoice ID (auto-generated or custom)
+- Invoice Date
+- Due Date
+- Tax Rate (%)
+- Currency Selection
 
-```bash
-python invoice_maker.py --interactive
-```
+### Bill From (Your Information)
 
-The interactive mode will guide you through:
+- Company Name (required)
+- Contact Person
+- Complete Address
+- Phone, Email, Tax ID
 
-1. **Invoice Details**
-   - Invoice ID (auto-generated if not provided)
-   - Invoice date (defaults to today)
-   - Due date (defaults to 30 days from invoice date)
+### Bill To (Client Information)
 
-2. **Issuer Information**
-   - Your company details
-   - Complete address and contact information
-   - Tax ID
+- Company Name (required)
+- Contact Person
+- Complete Address
+- Phone, Email, Tax ID
 
-3. **Client Information**
-   - Client company details
-   - Complete address and contact information
-   - Tax ID
+### Invoice Items
 
-4. **Invoice Items**
-   - Add multiple items with description, quantity, and rate
-   - Automatic total calculation
+- Description (required)
+- Quantity (required)
+- Rate (required)
+- Automatic total calculation
+- Add/remove items dynamically
 
-5. **Discounts (Optional)**
-   - Add discount items with negative amounts
+### Discounts (Optional)
 
-6. **Tax Configuration**
-   - Set tax rate percentage (0 for no tax)
+- Description
+- Amount
+- Add/remove discounts dynamically
 
-### Example Invoice Structure
+## PDF Features
 
-The generated PDF will include:
+The generated PDF includes:
 
-```
-                           INVOICE
+- Professional header with invoice ID
+- Complete billing information
+- Itemized list with calculations
+- Tax calculations
+- Professional footer
+- Responsive layout
 
-Invoice ID: INV-20240702-145102
-Invoice Date: July 02, 2024
-Due Date: August 01, 2024
+## Scripts
 
-Bill From:                          Bill To:
-Acme Corporation                    Client Company Inc.
-John Smith                          Jane Doe
-123 Business St                     456 Client Ave
-Suite 100                           Floor 2
-New York, NY 10001                  Los Angeles, CA 90210
-United States                       United States
-Tax ID: 12-3456789                  Tax ID: 98-7654321
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run type-check` - Run TypeScript type checking
 
-┌─────────────────────────────────────────────────────────────────────┐
-│ Description          │ Quantity │    Rate │    Total                │
-├─────────────────────────────────────────────────────────────────────┤
-│ Web Development      │     40.0 │ $150.00 │ $6,000.00              │
-│ Design Services      │     20.0 │ $100.00 │ $2,000.00              │
-│ Early Payment Disc.  │      1.0 │ $-200.00│  $-200.00              │
-└─────────────────────────────────────────────────────────────────────┘
-
-                                    Subtotal: $8,000.00
-                                    Discount:  $-200.00
-                                    Tax (8.5%): $663.00
-                                    Total: $8,463.00
-
-               Phone: (555) 123-4567 | Email: john@acme.com
-```
-
-## File Structure
+## Project Structure
 
 ```
-invoice-maker/
-├── invoice_maker.py      # Main application
-├── requirements.txt      # Python dependencies
-├── README.md            # Documentation
-└── *.pdf               # Generated invoices
+src/
+├── components/          # React components
+│   ├── forms/          # Form components
+│   ├── ui/             # UI components
+│   └── PDFPreview.tsx  # PDF preview component
+├── lib/                # Utility libraries
+│   ├── services/       # Services (PDF generation)
+│   ├── utils/          # Utility functions
+│   └── validations/    # Zod schemas
+├── pages/              # Next.js pages
+├── styles/             # Global styles
+└── types/              # TypeScript types
 ```
 
-## Generated Invoice Features
+## Contributing
 
-- **Professional Layout**: Clean, business-ready design
-- **Comprehensive Information**: All business details included
-- **Accurate Calculations**: Precise decimal handling
-- **Tax Support**: Configurable tax rates with proper calculations
-- **Discount Support**: Negative amounts displayed correctly
-- **Contact Footer**: Easy reference for client communication
-
-## Technical Details
-
-- **Language**: Python 3.6+
-- **PDF Generation**: ReportLab library
-- **Decimal Precision**: Proper financial calculations
-- **Date Handling**: Flexible date input with defaults
-- **Error Handling**: Input validation and user-friendly messages
-
-## Requirements
-
-- Python 3.6 or higher
-- ReportLab library (`pip install reportlab`)
-
-## Example Usage
-
-1. Run `python invoice_maker.py`
-2. Follow the interactive prompts
-3. Your PDF invoice will be generated as `invoice_[ID].pdf`
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-Open source - feel free to modify and use for your business needs.
+This project is open source and available under the [MIT License](LICENSE).
 
 ## Support
 
-For issues or feature requests, please create an issue in the repository.
+If you encounter any issues or have questions, please create an issue in the repository.
+
+---
+
+**Built with ❤️ using Next.js, React, and TypeScript**

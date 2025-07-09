@@ -1,0 +1,254 @@
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ContactInfoForm } from "./ContactInfoForm";
+import { InvoiceItemsForm } from "./InvoiceItemsForm";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import {
+  invoiceFormSchema,
+  InvoiceFormValues,
+} from "@/lib/validations/invoice";
+import { generateInvoicePDF, downloadPDF } from "@/lib/services/pdf-generator";
+import { generateInvoiceId } from "@/lib/utils/invoice-calculations";
+
+interface InvoiceFormProps {
+  onPDFGenerated?: (pdfBlob: Blob, invoiceId?: string) => void;
+}
+
+export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onPDFGenerated }) => {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedPDF, setGeneratedPDF] = useState<Blob | null>(null);
+
+  const {
+    control,
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors, isValid },
+  } = useForm<InvoiceFormValues>({
+    resolver: zodResolver(invoiceFormSchema),
+    defaultValues: {
+      invoiceId: generateInvoiceId(),
+      invoiceDate: new Date().toISOString().split("T")[0],
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
+      issuer: {
+        companyName: "",
+      },
+      client: {
+        companyName: "",
+      },
+      items: [
+        {
+          id: "item-1",
+          description: "",
+          quantity: 1,
+          rate: 0,
+        },
+      ],
+      discounts: [],
+      taxRate: 0,
+      currency: "$",
+    },
+    mode: "onChange",
+  });
+
+  const watchedData = watch();
+
+  const onSubmit = async (data: InvoiceFormValues) => {
+    setIsGenerating(true);
+    try {
+      const pdfBlob = await generateInvoicePDF(data);
+      setGeneratedPDF(pdfBlob);
+      onPDFGenerated?.(pdfBlob, data.invoiceId);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      // You might want to show a toast or error message here
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    if (generatedPDF) {
+      downloadPDF(generatedPDF, `invoice-${watchedData.invoiceId}.pdf`);
+    }
+  };
+
+  const handleGenerateNewId = () => {
+    setValue("invoiceId", generateInvoiceId());
+  };
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-8">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-gray-900">Invoice Generator</h1>
+        <p className="mt-2 text-sm text-gray-600">
+          Create professional invoices quickly and easily
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        {/* Invoice Details Section */}
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">
+            Invoice Details
+          </h2>
+
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="sm:col-span-2 lg:col-span-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Invoice ID
+              </label>
+              <div className="flex space-x-2">
+                <Input
+                  {...register("invoiceId")}
+                  error={errors.invoiceId?.message}
+                  placeholder="INV-2024-001"
+                  className="flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={handleGenerateNewId}
+                  className="group relative inline-flex h-10 w-10 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                  aria-label="Generate new invoice ID"
+                >
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  <span className="absolute bottom-full mb-2 hidden whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white group-hover:block">
+                    Generate ID
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <Input
+              {...register("invoiceDate")}
+              label="Invoice Date"
+              type="date"
+              error={errors.invoiceDate?.message}
+            />
+
+            <Input
+              {...register("dueDate")}
+              label="Due Date"
+              type="date"
+              error={errors.dueDate?.message}
+            />
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <Input
+              {...register("taxRate", { valueAsNumber: true })}
+              label="Tax Rate (%)"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              error={errors.taxRate?.message}
+              placeholder="0.00"
+            />
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Currency
+              </label>
+              <select
+                {...register("currency")}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              >
+                <option value="$">USD ($)</option>
+                <option value="€">EUR (€)</option>
+                <option value="£">GBP (£)</option>
+                <option value="¥">JPY (¥)</option>
+                <option value="₹">INR (₹)</option>
+              </select>
+              {errors.currency && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.currency.message}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Issuer Information */}
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <ContactInfoForm
+            control={control}
+            name="issuer"
+            title="Bill From (Your Information)"
+          />
+        </div>
+
+        {/* Client Information */}
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <ContactInfoForm
+            control={control}
+            name="client"
+            title="Bill To (Client Information)"
+          />
+        </div>
+
+        {/* Invoice Items and Summary */}
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <InvoiceItemsForm control={control} watch={watch} />
+        </div>
+
+        {/* Form Actions */}
+        <div className="flex flex-col space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
+          <Button
+            type="submit"
+            isLoading={isGenerating}
+            disabled={!isValid || isGenerating}
+            className="flex-1"
+          >
+            {isGenerating ? "Generating PDF..." : "Generate Invoice PDF"}
+          </Button>
+
+          {generatedPDF && (
+            <Button
+              type="button"
+              onClick={handleDownloadPDF}
+              variant="outline"
+              className="flex-1"
+            >
+              Download PDF
+            </Button>
+          )}
+        </div>
+
+        {/* Form Errors Summary */}
+        {Object.keys(errors).length > 0 && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+            <h3 className="text-sm font-medium text-red-800">
+              Please fix the following errors:
+            </h3>
+            <ul className="mt-2 text-sm text-red-700">
+              {Object.entries(errors).map(([field, error]) => (
+                <li key={field} className="list-disc list-inside">
+                  {field}: {error?.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </form>
+    </div>
+  );
+};
