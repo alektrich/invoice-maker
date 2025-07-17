@@ -290,13 +290,14 @@ export class InvoicePDFGenerator {
       this.doc.text(label, rightAlign - amountWidth - 30 - labelWidth, yPos);
 
       if (isTotal) {
-        // Draw line above total
-        const lineStartX = rightAlign - Math.max(amountWidth + labelWidth + 40, 150);
+        // Draw line above total, aligned with "Total:" text
+        const totalLabelWidth = this.doc.getTextWidth("Total:");
+        const lineStartX = rightAlign - amountWidth - 30 - totalLabelWidth;
         this.doc.line(
           lineStartX,
-          yPos - 10,
+          yPos - 15,
           rightAlign,
-          yPos - 10
+          yPos - 15
         );
       }
 

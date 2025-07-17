@@ -49,17 +49,6 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-6">
           <div className="text-center text-sm text-gray-600">
             <p>Invoice Generator - Professional invoices made simple</p>
-            <p className="mt-1">
-              Brought to you by{" "}
-              <a
-                href="https://www.dreadfullstack.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:text-blue-600"
-              >
-                DreadfullStack
-              </a>
-            </p>
           </div>
         </div>
       </footer>
