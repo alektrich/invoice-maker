@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState, useMemo } from "react";
 import { Button } from "./ui/Button";
 import { getInvoiceTemplate } from "@/lib/templates/invoice-templates";
@@ -18,7 +20,6 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
   onDownload,
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isRendering, setIsRendering] = useState(false);
   
   const template = useMemo(() => {
     if (templateId) {
@@ -28,76 +29,18 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
   }, [templateId]);
 
   useEffect(() => {
-    let isCancelled = false;
-    let pdfInstance: any;
+    if (!pdfBlob) {
+      setPreviewUrl(null);
+      return;
+    }
 
-    const renderPreview = async () => {
-      if (!pdfBlob) {
-        setPreviewUrl(null);
-        setIsRendering(false);
-        return;
-      }
+    // Create object URL for the PDF blob
+    const url = URL.createObjectURL(pdfBlob);
+    setPreviewUrl(url);
 
-      setIsRendering(true);
-
-      try {
-        // Dynamic import for pdfjs-dist to avoid SSR issues
-        const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf");
-
-        // Set worker source if not already set
-        if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-          pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-        }
-
-        const data = await pdfBlob.arrayBuffer();
-        const loadingTask = pdfjsLib.getDocument({ data });
-        pdfInstance = await loadingTask.promise;
-
-        const page = await pdfInstance.getPage(1);
-        const viewport = page.getViewport({ scale: 0.9 });
-
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
-
-        if (!context) {
-          throw new Error("Unable to create canvas rendering context");
-        }
-
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-
-        await page.render({
-          canvasContext: context,
-          viewport,
-        }).promise;
-
-        if (isCancelled) {
-          return;
-        }
-
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.45);
-        setPreviewUrl(dataUrl);
-
-        page.cleanup();
-      } catch (error) {
-        if (!isCancelled) {
-          console.error("Error rendering PDF preview:", error);
-          setPreviewUrl(null);
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsRendering(false);
-        }
-        if (pdfInstance) {
-          pdfInstance.destroy?.();
-        }
-      }
-    };
-
-    renderPreview();
-
+    // Cleanup: revoke the object URL when component unmounts or blob changes
     return () => {
-      isCancelled = true;
+      URL.revokeObjectURL(url);
     };
   }, [pdfBlob]);
 
@@ -233,82 +176,53 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
             />
           </svg>
           <h3 className="mt-2 text-sm font-medium text-gray-900">
-            {isRendering ? "Rendering preview…" : "No PDF generated yet"}
+            No PDF generated yet
           </h3>
           <p className="mt-1 text-sm text-gray-500">
-            {isRendering
-              ? "Creating a lightweight preview image."
-              : 'Fill out the form and click "Generate Invoice PDF" to see the preview.'}
+            Fill out the form and click "Generate Invoice PDF" to see the preview.
           </p>
         </div>
       </div>
     );
   };
 
-  // If we have a PDF blob, show the preview (even if still rendering)
+  // If we have a PDF blob, show the preview
   // Only show placeholder if no PDF blob exists or we're on template selection step
   if (!pdfBlob) {
     return renderPlaceholder();
-  }
-
-  // If we have pdfBlob but no previewUrl yet, show loading state
-  if (!previewUrl && !isRendering) {
-    // This shouldn't happen, but if it does, show loading
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">Invoice Preview</h2>
-          {onDownload && (
-            <Button onClick={onDownload} variant="outline">
-              Download PDF
-            </Button>
-          )}
-        </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="flex h-[600px] items-center justify-center">
-            <div className="text-center">
-              <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-primary-500" />
-              <p className="mt-4 text-sm text-gray-500">
-                Rendering preview image…
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gray-900">Invoice Preview</h2>
-        <Button onClick={onDownload} variant="outline">
-          Download PDF
-        </Button>
+        {onDownload && (
+          <Button onClick={onDownload} variant="outline">
+            Download PDF
+          </Button>
+        )}
       </div>
 
       <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-        {isRendering || !previewUrl ? (
+        {previewUrl ? (
+          <iframe
+            src={previewUrl}
+            className="h-[600px] w-full rounded-md"
+            title={invoiceId ? `Invoice ${invoiceId} preview` : "Invoice preview"}
+          />
+        ) : (
           <div className="flex h-[600px] items-center justify-center">
             <div className="text-center">
               <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-primary-500" />
-              <p className="mt-4 text-sm text-gray-500">
-                Rendering preview image…
-              </p>
+              <p className="mt-4 text-sm text-gray-500">Loading PDF preview…</p>
             </div>
           </div>
-        ) : (
-          <img
-            src={previewUrl}
-            alt={invoiceId ? `Invoice ${invoiceId} preview` : "Invoice preview"}
-            className="max-h-[600px] w-full rounded-md object-contain"
-          />
         )}
       </div>
 
       {invoiceId && (
         <div className="text-center text-sm text-gray-500">
-          <p>Preview of invoice {invoiceId} (reduced image quality)</p>
+          <p>Preview of invoice {invoiceId}</p>
         </div>
       )}
     </div>

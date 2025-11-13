@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ContactInfoForm } from "./ContactInfoForm";
 import { InvoiceItemsForm } from "./InvoiceItemsForm";
@@ -121,6 +121,10 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
           // Ensure all optional string fields default to empty string instead of undefined
           const normalizedParsed = {
             ...parsed,
+            // Always ensure invoiceId, invoiceDate, and dueDate are set (they're not persisted)
+            invoiceId: parsed.invoiceId || baseDefaults.invoiceId,
+            invoiceDate: parsed.invoiceDate || baseDefaults.invoiceDate,
+            dueDate: parsed.dueDate || baseDefaults.dueDate,
             issuer: {
               companyName: "",
               contactPerson: "",
@@ -226,7 +230,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
   };
 
   const handleGenerateNewId = () => {
-    setValue("invoiceId", generateInvoiceId());
+    setValue("invoiceId", generateInvoiceId(), { shouldValidate: true, shouldDirty: true });
   };
 
   return (
@@ -295,11 +299,18 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 Invoice ID
               </label>
               <div className="flex space-x-2">
-                <Input
-                  {...register("invoiceId")}
-                  error={errors.invoiceId?.message}
-                  placeholder="INV-2024-001"
-                  className="flex-1"
+                <Controller
+                  name="invoiceId"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      value={field.value || ""}
+                      error={errors.invoiceId?.message}
+                      placeholder="INV-2024-001"
+                      className="flex-1"
+                    />
+                  )}
                 />
                 <button
                   type="button"
@@ -328,31 +339,56 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
               </div>
             </div>
 
-            <Input
-              {...register("invoiceDate")}
-              label="Invoice Date"
-              type="date"
-              error={errors.invoiceDate?.message}
+            <Controller
+              name="invoiceDate"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  value={field.value || ""}
+                  label="Invoice Date"
+                  type="date"
+                  error={errors.invoiceDate?.message}
+                />
+              )}
             />
 
-            <Input
-              {...register("dueDate")}
-              label="Due Date"
-              type="date"
-              error={errors.dueDate?.message}
+            <Controller
+              name="dueDate"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  value={field.value || ""}
+                  label="Due Date"
+                  type="date"
+                  error={errors.dueDate?.message}
+                />
+              )}
             />
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <Input
-              {...register("taxRate", { valueAsNumber: true })}
-              label="Tax Rate (%)"
-              type="number"
-              step="0.01"
-              min="0"
-              max="100"
-              error={errors.taxRate?.message}
-              placeholder="0.00"
+            <Controller
+              name="taxRate"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  value={field.value === undefined || field.value === null ? "" : String(field.value)}
+                  onChange={(e) => {
+                    const value = e.target.value === "" ? 0 : parseFloat(e.target.value) || 0;
+                    field.onChange(value);
+                  }}
+                  label="Tax Rate (%)"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  error={errors.taxRate?.message}
+                  placeholder="0.00"
+                />
+              )}
             />
 
             <div>
