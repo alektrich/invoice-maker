@@ -267,28 +267,26 @@ export class InvoicePDFGenerator {
       this.margin,
       yStart - 14,
       this.pageWidth - this.margin * 2,
-      26,
+      28,
       "F"
     );
 
     this.setTextColor(this.palette.tableHeaderText);
     headers.forEach((header, index) => {
       if (index === 0) {
-        this.doc.text(header, colPositions[index], yStart);
+        this.doc.text(header, colPositions[index] + 8, yStart);
       } else {
         const textWidth = this.doc.getTextWidth(header);
+        const padding = index === 3 ? 8 : 0;
         this.doc.text(
           header,
-          colPositions[index] + colWidths[index] - textWidth,
+          colPositions[index] + colWidths[index] - textWidth - padding,
           yStart
         );
       }
     });
 
-    this.setDrawColor(this.palette.border);
-    this.doc.line(this.margin, yStart + 8, this.pageWidth - this.margin, yStart + 8);
-
-    let yPos = yStart + 26;
+    let yPos = yStart + 28;
     this.doc.setFont("helvetica", "normal");
     this.setTextColor(this.palette.bodyText);
 
@@ -398,7 +396,7 @@ export class InvoicePDFGenerator {
 
       if (isTotal) {
         this.setFillColor(this.palette.accentLight);
-        this.doc.rect(rightAlign - 210, yPos - 14, 210, 26, "F");
+        this.doc.rect(rightAlign - 210, yPos - 14, 210, 28, "F");
         this.doc.setFont("helvetica", "bold");
         this.doc.setFontSize(12);
         this.setTextColor(this.palette.accent);
@@ -413,11 +411,6 @@ export class InvoicePDFGenerator {
 
       this.doc.text(amount, rightAlign - amountWidth, yPos);
       this.doc.text(`${label}:`, rightAlign - amountWidth - 24 - labelWidth, yPos);
-
-      if (isTotal) {
-        this.setDrawColor(this.palette.accent);
-        this.doc.line(rightAlign - 210, yPos - 18, rightAlign, yPos - 18);
-      }
 
       yPos += isTotal ? 30 : 22;
     });
