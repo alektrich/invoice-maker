@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ContactInfoForm } from "./ContactInfoForm";
@@ -11,30 +11,40 @@ import {
 } from "@/lib/validations/invoice";
 import { generateInvoicePDF, downloadPDF } from "@/lib/services/pdf-generator";
 import { generateInvoiceId } from "@/lib/utils/invoice-calculations";
+import { INVOICE_FORM_STORAGE_KEY } from "@/lib/constants/storage";
+import {
+  getInvoiceTemplate,
+  InvoiceTemplate,
+} from "@/lib/templates/invoice-templates";
 
 interface InvoiceFormProps {
+  templateId: string;
   onPDFGenerated?: (pdfBlob: Blob, invoiceId?: string) => void;
+  onChangeTemplate?: () => void;
 }
 
-export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onPDFGenerated }) => {
+export const InvoiceForm: React.FC<InvoiceFormProps> = ({
+  templateId,
+  onPDFGenerated,
+  onChangeTemplate,
+}) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPDF, setGeneratedPDF] = useState<Blob | null>(null);
+  const template = useMemo<InvoiceTemplate>(
+    () => getInvoiceTemplate(templateId),
+    [templateId]
+  );
 
-  const {
-    control,
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors, isValid },
-  } = useForm<InvoiceFormValues>({
-    resolver: zodResolver(invoiceFormSchema),
-    defaultValues: {
+  const defaultValuesRef = useRef<InvoiceFormValues | null>(null);
+
+  if (!defaultValuesRef.current) {
+    defaultValuesRef.current = {
       invoiceId: generateInvoiceId(),
       invoiceDate: new Date().toISOString().split("T")[0],
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         .toISOString()
         .split("T")[0],
+      templateId,
       issuer: {
         companyName: "",
       },
@@ -52,9 +62,94 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onPDFGenerated }) => {
       discounts: [],
       taxRate: 0,
       currency: "$",
-    },
+    };
+  }
+
+  const {
+    control,
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    getValues,
+    formState: { errors, isValid },
+  } = useForm<InvoiceFormValues>({
+    resolver: zodResolver(invoiceFormSchema),
+    defaultValues: defaultValuesRef.current ?? undefined,
     mode: "onChange",
   });
+
+  const hasHydratedRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      hasHydratedRef.current = true;
+      return;
+    }
+
+    if (!hasHydratedRef.current) {
+      try {
+        const stored = localStorage.getItem(INVOICE_FORM_STORAGE_KEY);
+        const baseDefaults = {
+          ...(defaultValuesRef.current as InvoiceFormValues),
+          templateId,
+        };
+
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          reset({
+            ...baseDefaults,
+            ...parsed,
+            templateId,
+          });
+        } else {
+          reset(baseDefaults);
+        }
+      } catch (error) {
+        console.error("Error loading invoice draft from storage:", error);
+        reset({
+          ...(defaultValuesRef.current as InvoiceFormValues),
+          templateId,
+        });
+      }
+      hasHydratedRef.current = true;
+      return;
+    }
+
+    if (getValues("templateId") !== templateId) {
+      setValue("templateId", templateId, { shouldDirty: true });
+    }
+  }, [getValues, reset, setValue, templateId]);
+
+  useEffect(() => {
+    const subscription = watch((value) => {
+      if (!hasHydratedRef.current) {
+        return;
+      }
+
+      const { invoiceId, invoiceDate, dueDate, ...persistable } =
+        value as InvoiceFormValues;
+
+      try {
+        localStorage.setItem(
+          INVOICE_FORM_STORAGE_KEY,
+          JSON.stringify(persistable)
+        );
+      } catch (error) {
+        console.error("Error saving invoice draft to storage:", error);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [watch]);
+
+  useEffect(() => {
+    if (!hasHydratedRef.current) {
+      return;
+    }
+    setGeneratedPDF(null);
+  }, [templateId]);
 
   const watchedData = watch();
 
@@ -84,14 +179,58 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onPDFGenerated }) => {
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900">Invoice Generator</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Create professional invoices quickly and easily
-        </p>
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Step 2 of 2
+            </span>
+            <h1 className="mt-2 text-3xl font-bold text-gray-900">
+              Provide Invoice Details
+            </h1>
+            <p className="mt-1 text-sm text-gray-600">
+              Review your template selection and complete the form to generate
+              your invoice.
+            </p>
+          </div>
+
+          {onChangeTemplate && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onChangeTemplate}
+              className="whitespace-nowrap"
+            >
+              Change Template
+            </Button>
+          )}
+        </div>
+
+        <div className="mt-6 flex flex-col gap-4 rounded-lg bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Selected Template
+            </p>
+            <p
+              className="mt-1 text-xl font-semibold"
+              style={{ color: template.accentHex }}
+            >
+              {template.name}
+            </p>
+            <p className="mt-1 text-sm text-gray-600">{template.description}</p>
+          </div>
+          <div
+            className="h-16 w-full rounded-md sm:w-40"
+            style={{
+              backgroundImage: `linear-gradient(135deg, ${template.previewGradient[0]}, ${template.previewGradient[1]})`,
+            }}
+            aria-hidden="true"
+          />
+        </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        <input type="hidden" {...register("templateId")} />
         {/* Invoice Details Section */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">

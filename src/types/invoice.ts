@@ -29,6 +29,7 @@ export interface InvoiceData {
   invoiceId: string;
   invoiceDate: string; // ISO date string
   dueDate: string; // ISO date string
+  templateId: string;
   issuer: ContactInfo;
   client: ContactInfo;
   items: InvoiceItem[];

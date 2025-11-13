@@ -32,6 +32,7 @@ export const invoiceFormSchema = z
     invoiceId: z.string().min(1, "Invoice ID is required"),
     invoiceDate: z.string().min(1, "Invoice date is required"),
     dueDate: z.string().min(1, "Due date is required"),
+    templateId: z.string().min(1, "Template selection is required"),
     issuer: contactInfoSchema,
     client: contactInfoSchema,
     items: z.array(invoiceItemSchema).min(1, "At least one item is required"),

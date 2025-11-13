@@ -1,13 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { InvoiceForm } from "@/components/forms/InvoiceForm";
 import { PDFPreview } from "@/components/PDFPreview";
 import { downloadPDF } from "@/lib/services/pdf-generator";
+import { TemplateSelector } from "@/components/TemplateSelector";
+import {
+  INVOICE_TEMPLATE_STORAGE_KEY,
+} from "@/lib/constants/storage";
+import { DEFAULT_TEMPLATE_ID } from "@/lib/templates/invoice-templates";
 
 export default function HomePage() {
   const [generatedPDF, setGeneratedPDF] = useState<Blob | null>(null);
   const [currentInvoiceId, setCurrentInvoiceId] = useState<string>("");
+  const [step, setStep] = useState<1 | 2>(1);
+  const [selectedTemplateId, setSelectedTemplateId] =
+    useState<string>(DEFAULT_TEMPLATE_ID);
 
   const handlePDFGenerated = (pdfBlob: Blob, invoiceId?: string) => {
     setGeneratedPDF(pdfBlob);
@@ -22,13 +30,65 @@ export default function HomePage() {
     }
   };
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const storedTemplate = localStorage.getItem(
+      INVOICE_TEMPLATE_STORAGE_KEY
+    );
+    if (storedTemplate) {
+      setSelectedTemplateId(storedTemplate);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    localStorage.setItem(
+      INVOICE_TEMPLATE_STORAGE_KEY,
+      selectedTemplateId
+    );
+  }, [selectedTemplateId]);
+
+  useEffect(() => {
+    setGeneratedPDF(null);
+    setCurrentInvoiceId("");
+  }, [selectedTemplateId, step]);
+
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+  };
+
+  const handleContinueToForm = () => {
+    setStep(2);
+  };
+
+  const handleBackToTemplates = () => {
+    setStep(1);
+  };
+
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           {/* Form Section */}
           <div className="space-y-6">
-            <InvoiceForm onPDFGenerated={handlePDFGenerated} />
+            {step === 1 ? (
+              <TemplateSelector
+                selectedTemplateId={selectedTemplateId}
+                onSelect={handleTemplateSelect}
+                onContinue={handleContinueToForm}
+                isContinueDisabled={!selectedTemplateId}
+              />
+            ) : (
+              <InvoiceForm
+                templateId={selectedTemplateId}
+                onPDFGenerated={handlePDFGenerated}
+                onChangeTemplate={handleBackToTemplates}
+              />
+            )}
           </div>
 
           {/* PDF Preview Section */}
