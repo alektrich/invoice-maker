@@ -29,7 +29,10 @@ export interface InvoiceData {
   invoiceId: string;
   invoiceDate: string; // ISO date string
   dueDate: string; // ISO date string
-  templateId: string;
+  templateId: string; // Legacy template ID for backward compatibility
+  colorSchemeId?: string; // New: Color scheme ID
+  gradientStyleId?: string; // New: Gradient style ID
+  layoutStyleId?: string; // New: Layout style ID
   issuer: ContactInfo;
   client: ContactInfo;
   items: InvoiceItem[];

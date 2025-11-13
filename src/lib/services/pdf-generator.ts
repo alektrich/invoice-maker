@@ -8,6 +8,10 @@ import {
   getInvoiceTemplate,
   InvoiceTemplate,
   InvoiceTemplatePalette,
+  getColorScheme,
+  getGradientStyle,
+  GradientType,
+  getLayoutStyle,
 } from "@/lib/templates/invoice-templates";
 
 export class InvoicePDFGenerator {
@@ -18,6 +22,9 @@ export class InvoicePDFGenerator {
   private margin: number;
   private template: InvoiceTemplate;
   private palette: InvoiceTemplatePalette;
+  private gradientStyleId: string;
+  private colorSchemeId: string;
+  private layoutStyleId: string;
 
   constructor(invoice: InvoiceData) {
     this.invoice = invoice;
@@ -26,7 +33,13 @@ export class InvoicePDFGenerator {
     this.pageHeight = this.doc.internal.pageSize.height;
     this.margin = 72; // 1 inch margins
     this.template = getInvoiceTemplate(invoice.templateId);
-    this.palette = this.template.palette;
+    // Support new template system with colorSchemeId, gradientStyleId, and layoutStyleId
+    this.colorSchemeId = (invoice as any).colorSchemeId || "navy-blue";
+    this.gradientStyleId = (invoice as any).gradientStyleId || "solid";
+    this.layoutStyleId = (invoice as any).layoutStyleId || "classic";
+    // Use color scheme palette if available, otherwise fall back to template palette
+    const colorScheme = getColorScheme(this.colorSchemeId);
+    this.palette = colorScheme.palette;
   }
 
   generatePDF(): jsPDF {
@@ -52,9 +65,72 @@ export class InvoicePDFGenerator {
     this.doc.setDrawColor(color[0], color[1], color[2]);
   }
 
+  private applyGradientFill(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    gradientType: GradientType,
+    startColor: [number, number, number],
+    endColor: [number, number, number]
+  ): void {
+    if (gradientType === "solid") {
+      this.setFillColor(startColor);
+      this.doc.rect(x, y, width, height, "F");
+      return;
+    }
+
+    // jsPDF doesn't have native gradient support, so we'll simulate it
+    // by drawing multiple rectangles with interpolated colors
+    const steps = 20;
+    const stepHeight = height / steps;
+    const stepWidth = width / steps;
+
+    for (let i = 0; i < steps; i++) {
+      const ratio = i / (steps - 1);
+      const r = Math.round(startColor[0] + (endColor[0] - startColor[0]) * ratio);
+      const g = Math.round(startColor[1] + (endColor[1] - startColor[1]) * ratio);
+      const b = Math.round(startColor[2] + (endColor[2] - startColor[2]) * ratio);
+
+      this.setFillColor([r, g, b]);
+
+      if (gradientType === "linear-vertical") {
+        this.doc.rect(x, y + i * stepHeight, width, stepHeight + 1, "F");
+      } else if (gradientType === "linear-horizontal") {
+        this.doc.rect(x + i * stepWidth, y, stepWidth + 1, height, "F");
+      } else if (gradientType === "radial") {
+        // For radial, we'll approximate with concentric rectangles
+        // Clamp to the bounds of the header area
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+        const maxRadius = Math.max(width, height) / 2;
+        const currentRadius = maxRadius * (1 - ratio);
+        const rectX = Math.max(x, centerX - currentRadius);
+        const rectY = Math.max(y, centerY - currentRadius);
+        const rectWidth = Math.min(width, currentRadius * 2);
+        const rectHeight = Math.min(height, currentRadius * 2);
+        // Ensure we don't draw outside bounds
+        if (rectX < x + width && rectY < y + height && rectWidth > 0 && rectHeight > 0) {
+          this.doc.rect(rectX, rectY, rectWidth, rectHeight, "F");
+        }
+      }
+    }
+  }
+
   private addHeader(): void {
-    this.setFillColor(this.palette.accent);
-    this.doc.rect(0, 0, this.pageWidth, 90, "F");
+    const gradientStyle = getGradientStyle(this.gradientStyleId);
+    const colorScheme = getColorScheme(this.colorSchemeId);
+    
+    // Get start and end colors for gradient
+    const startColor = colorScheme.palette.accent;
+    // Create a slightly lighter/darker version for end color
+    const endColor: [number, number, number] = [
+      Math.min(255, Math.max(0, startColor[0] + (gradientStyle.type === "solid" ? 0 : 30))),
+      Math.min(255, Math.max(0, startColor[1] + (gradientStyle.type === "solid" ? 0 : 30))),
+      Math.min(255, Math.max(0, startColor[2] + (gradientStyle.type === "solid" ? 0 : 30))),
+    ];
+
+    this.applyGradientFill(0, 0, this.pageWidth, 90, gradientStyle.type, startColor, endColor);
 
     this.doc.setFont("helvetica", "bold");
     this.doc.setFontSize(26);

@@ -15,16 +15,27 @@ import { INVOICE_FORM_STORAGE_KEY } from "@/lib/constants/storage";
 import {
   getInvoiceTemplate,
   InvoiceTemplate,
+  getColorScheme,
+  getGradientStyle,
+  getTemplateConfig,
+  DEFAULT_COLOR_SCHEME_ID,
+  DEFAULT_GRADIENT_STYLE_ID,
 } from "@/lib/templates/invoice-templates";
 
 interface InvoiceFormProps {
   templateId: string;
+  colorSchemeId?: string;
+  gradientStyleId?: string;
+  layoutStyleId?: string;
   onPDFGenerated?: (pdfBlob: Blob, invoiceId?: string) => void;
   onChangeTemplate?: () => void;
 }
 
 export const InvoiceForm: React.FC<InvoiceFormProps> = ({
   templateId,
+  colorSchemeId,
+  gradientStyleId,
+  layoutStyleId,
   onPDFGenerated,
   onChangeTemplate,
 }) => {
@@ -34,6 +45,18 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
     () => getInvoiceTemplate(templateId),
     [templateId]
   );
+  
+  // Get the current template config for display
+  const templateConfig = useMemo(() => {
+    const currentColorSchemeId = colorSchemeId || DEFAULT_COLOR_SCHEME_ID;
+    const currentGradientStyleId = gradientStyleId || DEFAULT_GRADIENT_STYLE_ID;
+    const currentLayoutStyleId = layoutStyleId || "classic";
+    return getTemplateConfig(currentColorSchemeId, currentGradientStyleId, currentLayoutStyleId);
+  }, [colorSchemeId, gradientStyleId, layoutStyleId]);
+  
+  const colorScheme = useMemo(() => {
+    return getColorScheme(colorSchemeId || DEFAULT_COLOR_SCHEME_ID);
+  }, [colorSchemeId]);
 
   const defaultValuesRef = useRef<InvoiceFormValues | null>(null);
 
@@ -212,7 +235,13 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
   const onSubmit = async (data: InvoiceFormValues) => {
     setIsGenerating(true);
     try {
-      const pdfBlob = await generateInvoicePDF(data);
+      const invoiceData = {
+        ...data,
+        colorSchemeId: colorSchemeId || undefined,
+        gradientStyleId: gradientStyleId || undefined,
+        layoutStyleId: layoutStyleId || undefined,
+      };
+      const pdfBlob = await generateInvoicePDF(invoiceData);
       setGeneratedPDF(pdfBlob);
       onPDFGenerated?.(pdfBlob, data.invoiceId);
     } catch (error) {
@@ -269,17 +298,36 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
             </p>
             <p
               className="mt-1 text-xl font-semibold"
-              style={{ color: template.accentHex }}
+              style={{ color: colorScheme.accentHex }}
             >
-              {template.name}
+              {templateConfig.name}
             </p>
-            <p className="mt-1 text-sm text-gray-600">{template.description}</p>
+            <p className="mt-1 text-sm text-gray-600">{templateConfig.description}</p>
           </div>
           <div
             className="h-16 w-full rounded-md sm:w-40"
-            style={{
-              backgroundImage: `linear-gradient(135deg, ${template.previewGradient[0]}, ${template.previewGradient[1]})`,
-            }}
+            style={(() => {
+              const currentGradientStyle = getGradientStyle(gradientStyleId || DEFAULT_GRADIENT_STYLE_ID);
+              if (currentGradientStyle.type === "solid") {
+                return { backgroundColor: colorScheme.accentHex };
+              }
+              if (currentGradientStyle.type === "linear-vertical") {
+                return {
+                  background: `linear-gradient(180deg, ${colorScheme.accentHex}, ${colorScheme.previewGradient[1]})`,
+                };
+              }
+              if (currentGradientStyle.type === "linear-horizontal") {
+                return {
+                  background: `linear-gradient(90deg, ${colorScheme.accentHex}, ${colorScheme.previewGradient[1]})`,
+                };
+              }
+              if (currentGradientStyle.type === "radial") {
+                return {
+                  background: `radial-gradient(circle, ${colorScheme.accentHex}, ${colorScheme.previewGradient[1]})`,
+                };
+              }
+              return { backgroundColor: colorScheme.accentHex };
+            })()}
             aria-hidden="true"
           />
         </div>

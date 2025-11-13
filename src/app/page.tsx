@@ -7,15 +7,26 @@ import { downloadPDF } from "@/lib/services/pdf-generator";
 import { TemplateSelector } from "@/components/TemplateSelector";
 import {
   INVOICE_TEMPLATE_STORAGE_KEY,
+  INVOICE_COLOR_SCHEME_STORAGE_KEY,
+  INVOICE_GRADIENT_STYLE_STORAGE_KEY,
+  INVOICE_LAYOUT_STYLE_STORAGE_KEY,
 } from "@/lib/constants/storage";
-import { DEFAULT_TEMPLATE_ID } from "@/lib/templates/invoice-templates";
+import {
+  DEFAULT_TEMPLATE_ID,
+  DEFAULT_COLOR_SCHEME_ID,
+  DEFAULT_GRADIENT_STYLE_ID,
+  DEFAULT_LAYOUT_STYLE_ID,
+  TemplateConfig,
+} from "@/lib/templates/invoice-templates";
 
 export default function HomePage() {
   const [generatedPDF, setGeneratedPDF] = useState<Blob | null>(null);
   const [currentInvoiceId, setCurrentInvoiceId] = useState<string>("");
   const [step, setStep] = useState<1 | 2>(1);
-  const [selectedTemplateId, setSelectedTemplateId] =
-    useState<string>(DEFAULT_TEMPLATE_ID);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(DEFAULT_TEMPLATE_ID);
+  const [selectedColorSchemeId, setSelectedColorSchemeId] = useState<string>(DEFAULT_COLOR_SCHEME_ID);
+  const [selectedGradientStyleId, setSelectedGradientStyleId] = useState<string>(DEFAULT_GRADIENT_STYLE_ID);
+  const [selectedLayoutStyleId, setSelectedLayoutStyleId] = useState<string>(DEFAULT_LAYOUT_STYLE_ID);
 
   const handlePDFGenerated = (pdfBlob: Blob, invoiceId?: string) => {
     setGeneratedPDF(pdfBlob);
@@ -34,11 +45,22 @@ export default function HomePage() {
     if (typeof window === "undefined") {
       return;
     }
-    const storedTemplate = localStorage.getItem(
-      INVOICE_TEMPLATE_STORAGE_KEY
-    );
+    const storedTemplate = localStorage.getItem(INVOICE_TEMPLATE_STORAGE_KEY);
+    const storedColorScheme = localStorage.getItem(INVOICE_COLOR_SCHEME_STORAGE_KEY);
+    const storedGradientStyle = localStorage.getItem(INVOICE_GRADIENT_STYLE_STORAGE_KEY);
+    const storedLayoutStyle = localStorage.getItem(INVOICE_LAYOUT_STYLE_STORAGE_KEY);
+
     if (storedTemplate) {
       setSelectedTemplateId(storedTemplate);
+    }
+    if (storedColorScheme) {
+      setSelectedColorSchemeId(storedColorScheme);
+    }
+    if (storedGradientStyle) {
+      setSelectedGradientStyleId(storedGradientStyle);
+    }
+    if (storedLayoutStyle) {
+      setSelectedLayoutStyleId(storedLayoutStyle);
     }
   }, []);
 
@@ -46,19 +68,56 @@ export default function HomePage() {
     if (typeof window === "undefined") {
       return;
     }
-    localStorage.setItem(
-      INVOICE_TEMPLATE_STORAGE_KEY,
-      selectedTemplateId
-    );
+    localStorage.setItem(INVOICE_TEMPLATE_STORAGE_KEY, selectedTemplateId);
   }, [selectedTemplateId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    localStorage.setItem(INVOICE_COLOR_SCHEME_STORAGE_KEY, selectedColorSchemeId);
+  }, [selectedColorSchemeId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    localStorage.setItem(INVOICE_GRADIENT_STYLE_STORAGE_KEY, selectedGradientStyleId);
+  }, [selectedGradientStyleId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    localStorage.setItem(INVOICE_LAYOUT_STYLE_STORAGE_KEY, selectedLayoutStyleId);
+  }, [selectedLayoutStyleId]);
 
   useEffect(() => {
     setGeneratedPDF(null);
     setCurrentInvoiceId("");
-  }, [selectedTemplateId, step]);
+  }, [selectedTemplateId, selectedColorSchemeId, selectedGradientStyleId, selectedLayoutStyleId, step]);
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplateId(templateId);
+  };
+
+  const handleColorSchemeSelect = (colorSchemeId: string) => {
+    setSelectedColorSchemeId(colorSchemeId);
+  };
+
+  const handleGradientStyleSelect = (gradientStyleId: string) => {
+    setSelectedGradientStyleId(gradientStyleId);
+  };
+
+  const handleLayoutStyleSelect = (layoutStyleId: string) => {
+    setSelectedLayoutStyleId(layoutStyleId);
+  };
+
+  const handlePresetSelect = (config: TemplateConfig) => {
+    setSelectedColorSchemeId(config.colorSchemeId);
+    setSelectedGradientStyleId(config.gradientStyleId);
+    setSelectedLayoutStyleId(config.layoutStyleId);
+    setSelectedTemplateId(config.id);
   };
 
   const handleContinueToForm = () => {
@@ -78,13 +137,23 @@ export default function HomePage() {
             {step === 1 ? (
               <TemplateSelector
                 selectedTemplateId={selectedTemplateId}
+                selectedColorSchemeId={selectedColorSchemeId}
+                selectedGradientStyleId={selectedGradientStyleId}
+                selectedLayoutStyleId={selectedLayoutStyleId}
                 onSelect={handleTemplateSelect}
+                onSelectColorScheme={handleColorSchemeSelect}
+                onSelectGradientStyle={handleGradientStyleSelect}
+                onSelectLayoutStyle={handleLayoutStyleSelect}
+                onSelectPreset={handlePresetSelect}
                 onContinue={handleContinueToForm}
                 isContinueDisabled={!selectedTemplateId}
               />
             ) : (
               <InvoiceForm
                 templateId={selectedTemplateId}
+                colorSchemeId={selectedColorSchemeId}
+                gradientStyleId={selectedGradientStyleId}
+                layoutStyleId={selectedLayoutStyleId}
                 onPDFGenerated={handlePDFGenerated}
                 onChangeTemplate={handleBackToTemplates}
               />
@@ -98,6 +167,8 @@ export default function HomePage() {
                 pdfBlob={generatedPDF}
                 invoiceId={currentInvoiceId}
                 templateId={selectedTemplateId}
+                colorSchemeId={selectedColorSchemeId}
+                gradientStyleId={selectedGradientStyleId}
                 step={step}
                 onDownload={handleDownloadPDF}
               />

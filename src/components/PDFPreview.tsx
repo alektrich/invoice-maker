@@ -2,12 +2,14 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { Button } from "./ui/Button";
-import { getInvoiceTemplate } from "@/lib/templates/invoice-templates";
+import { getInvoiceTemplate, getColorScheme, getGradientStyle, DEFAULT_COLOR_SCHEME_ID, DEFAULT_GRADIENT_STYLE_ID } from "@/lib/templates/invoice-templates";
 
 interface PDFPreviewProps {
   pdfBlob: Blob | null;
   invoiceId?: string;
   templateId?: string;
+  colorSchemeId?: string;
+  gradientStyleId?: string;
   step?: 1 | 2;
   onDownload?: () => void;
 }
@@ -16,6 +18,8 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
   pdfBlob,
   invoiceId = "",
   templateId,
+  colorSchemeId,
+  gradientStyleId,
   step,
   onDownload,
 }) => {
@@ -27,6 +31,14 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
     }
     return null;
   }, [templateId]);
+
+  const colorScheme = useMemo(() => {
+    return getColorScheme(colorSchemeId || DEFAULT_COLOR_SCHEME_ID);
+  }, [colorSchemeId]);
+
+  const gradientStyle = useMemo(() => {
+    return getGradientStyle(gradientStyleId || DEFAULT_GRADIENT_STYLE_ID);
+  }, [gradientStyleId]);
 
   useEffect(() => {
     if (!pdfBlob) {
@@ -45,7 +57,35 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
   }, [pdfBlob]);
 
   const renderTemplatePreview = () => {
-    if (!template) return null;
+    const accentHex = colorScheme.accentHex;
+    const rgbToHex = (rgb: [number, number, number]) => {
+      return `#${rgb[0].toString(16).padStart(2, '0')}${rgb[1].toString(16).padStart(2, '0')}${rgb[2].toString(16).padStart(2, '0')}`;
+    };
+    const tableHeaderFillHex = rgbToHex(colorScheme.palette.tableHeaderFill);
+    const accentLightHex = rgbToHex(colorScheme.palette.accentLight);
+
+    // Get gradient style for header
+    const getHeaderStyle = () => {
+      if (gradientStyle.type === "solid") {
+        return { backgroundColor: accentHex };
+      }
+      if (gradientStyle.type === "linear-vertical") {
+        return {
+          background: `linear-gradient(180deg, ${accentHex}, ${colorScheme.previewGradient[1]})`,
+        };
+      }
+      if (gradientStyle.type === "linear-horizontal") {
+        return {
+          background: `linear-gradient(90deg, ${accentHex}, ${colorScheme.previewGradient[1]})`,
+        };
+      }
+      if (gradientStyle.type === "radial") {
+        return {
+          background: `radial-gradient(circle, ${accentHex}, ${colorScheme.previewGradient[1]})`,
+        };
+      }
+      return { backgroundColor: accentHex };
+    };
 
     return (
       <div className="space-y-4">
@@ -55,7 +95,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
             {/* Header */}
             <div
               className="rounded-t-lg px-6 py-4"
-              style={{ backgroundColor: template.accentHex }}
+              style={getHeaderStyle()}
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -67,7 +107,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
 
             {/* Invoice Details */}
             <div className="px-6">
-              <h4 className="mb-3 text-sm font-semibold" style={{ color: template.accentHex }}>
+              <h4 className="mb-3 text-sm font-semibold" style={{ color: accentHex }}>
                 Invoice Details
               </h4>
               <div className="space-y-2 text-sm">
@@ -89,7 +129,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
             {/* Bill From / Bill To */}
             <div className="grid grid-cols-2 gap-6 px-6">
               <div>
-                <h4 className="mb-2 text-sm font-semibold" style={{ color: template.accentHex }}>
+                <h4 className="mb-2 text-sm font-semibold" style={{ color: accentHex }}>
                   Bill From
                 </h4>
                 <div className="space-y-1 text-sm text-gray-700">
@@ -99,7 +139,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
                 </div>
               </div>
               <div>
-                <h4 className="mb-2 text-sm font-semibold" style={{ color: template.accentHex }}>
+                <h4 className="mb-2 text-sm font-semibold" style={{ color: accentHex }}>
                   Bill To
                 </h4>
                 <div className="space-y-1 text-sm text-gray-700">
@@ -115,8 +155,8 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
               <div
                 className="rounded-t px-4 py-2 text-sm font-semibold"
                 style={{
-                  backgroundColor: template.palette.tableHeaderFill.toString(),
-                  color: template.accentHex,
+                  backgroundColor: tableHeaderFillHex,
+                  color: accentHex,
                 }}
               >
                 <div className="grid grid-cols-4 gap-4">
@@ -135,7 +175,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
                 </div>
                 <div
                   className="grid grid-cols-4 gap-4 px-4 py-3 text-sm"
-                  style={{ backgroundColor: template.palette.accentLight.toString() }}
+                  style={{ backgroundColor: accentLightHex }}
                 >
                   <div>Another Service</div>
                   <div className="text-right">1</div>
@@ -155,7 +195,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
 
   const renderPlaceholder = () => {
     // Show template preview if on step 1 (template selection)
-    if (step === 1 && template) {
+    if (step === 1) {
       return renderTemplatePreview();
     }
 
