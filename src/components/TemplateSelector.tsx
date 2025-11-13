@@ -15,16 +15,18 @@ interface TemplateSelectorProps {
 
 const TemplatePreview: React.FC<{ template: InvoiceTemplate }> = ({
   template,
-}) => {
-  return (
-    <div
-      className="h-16 w-full rounded-md"
-      style={{
-        backgroundImage: `linear-gradient(135deg, ${template.previewGradient[0]}, ${template.previewGradient[1]})`,
-      }}
-    />
-  );
-};
+}) => (
+  <div
+    className="flex items-center justify-center h-16 w-full rounded-md"
+    style={{
+      backgroundImage: `linear-gradient(135deg, ${template.previewGradient[0]}, ${template.previewGradient[1]})`,
+    }}
+  >
+    <span className="text-sm font-semibold text-white">
+      {template.accentHex.toUpperCase()}
+    </span>
+  </div>
+);
 
 export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   selectedTemplateId,
@@ -57,7 +59,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
               type="button"
               onClick={() => onSelect(template.id)}
               className={cn(
-                "group flex h-full flex-col rounded-xl border bg-white p-6 text-left shadow-sm transition-all focus:outline-none",
+                "group flex h-full flex-col justify-between rounded-xl border bg-white p-6 text-left shadow-sm transition-all focus:outline-none",
                 "hover:-translate-y-1 hover:shadow-lg",
                 isSelected ? "border-transparent" : "border-gray-200"
               )}
@@ -111,7 +113,17 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   ) : (
-                    <span className="block h-2 w-2 rounded-full bg-gray-300 group-hover:bg-gray-400" />
+                    <svg
+                      className="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                    </svg>
                   )}
                 </span>
               </div>
@@ -120,7 +132,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                 <TemplatePreview template={template} />
               </div>
 
-              <div className="mt-6 flex items-center justify-between text-sm">
+              {/* <div className="!mt-3 flex items-center justify-between text-sm">
                 <span className="font-medium text-gray-500">Accent</span>
                 <span
                   className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
@@ -128,7 +140,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                 >
                   {template.accentHex.toUpperCase()}
                 </span>
-              </div>
+              </div> */}
             </button>
           );
         })}
@@ -144,7 +156,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
           disabled={isContinueDisabled}
           className="sm:w-auto"
         >
-          Continue to Invoice Details
+          Next: Invoice Form
         </Button>
       </div>
     </div>

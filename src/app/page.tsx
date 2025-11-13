@@ -97,6 +97,8 @@ export default function HomePage() {
               <PDFPreview
                 pdfBlob={generatedPDF}
                 invoiceId={currentInvoiceId}
+                templateId={selectedTemplateId}
+                step={step}
                 onDownload={handleDownloadPDF}
               />
             </div>

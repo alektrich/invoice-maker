@@ -13,6 +13,7 @@ export const Input: React.FC<InputProps> = ({
   error,
   helpText,
   id,
+  value,
   ...props
 }) => {
   const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
@@ -34,6 +35,7 @@ export const Input: React.FC<InputProps> = ({
           error && "border-red-300 focus:border-red-500 focus:ring-red-500",
           className
         )}
+        value={value ?? ""}
         {...props}
       />
       {error && <p className="text-sm text-red-600">{error}</p>}

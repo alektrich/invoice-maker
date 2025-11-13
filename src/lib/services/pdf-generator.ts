@@ -64,16 +64,6 @@ export class InvoicePDFGenerator {
     this.doc.setFont("helvetica", "normal");
     this.doc.setFontSize(12);
     this.doc.text(`#${this.invoice.invoiceId}`, this.margin, 65);
-
-    const templateNameWidth = this.doc.getTextWidth(this.template.name);
-    this.doc.text(
-      this.template.name,
-      this.pageWidth - this.margin - templateNameWidth,
-      45
-    );
-
-    this.setFillColor(this.palette.accentLight);
-    this.doc.rect(this.margin, 100, this.pageWidth - this.margin * 2, 3, "F");
   }
 
   private addInvoiceDetails(): void {
@@ -106,7 +96,6 @@ export class InvoicePDFGenerator {
           day: "numeric",
         }),
       ],
-      ["Template", this.template.name],
     ];
 
     details.forEach(([label, value]) => {
@@ -125,7 +114,7 @@ export class InvoicePDFGenerator {
   }
 
   private addPartiesInfo(): void {
-    const yStart = 240;
+    const yStart = 280;
 
     this.addContactInfo(this.invoice.issuer, "Bill From", this.margin, yStart);
     this.addContactInfo(
@@ -183,13 +172,14 @@ export class InvoicePDFGenerator {
   }
 
   private addItemsTable(): void {
-    const yStart = 380;
+    const yStart = 420;
 
     this.doc.setFont("helvetica", "bold");
     this.doc.setFontSize(10);
 
     const headers = ["Description", "Qty", "Rate", "Total"];
-    const colWidths = [260, 60, 80, 80];
+    const availableWidth = this.pageWidth - this.margin * 2;
+    const colWidths = [260, 60, 80, availableWidth - 260 - 60 - 80];
     const colPositions = [this.margin];
 
     for (let i = 1; i < colWidths.length; i++) {
@@ -271,7 +261,7 @@ export class InvoicePDFGenerator {
       this.setTextColor(this.palette.headerSubtext);
 
       this.invoice.discounts.forEach((discount) => {
-        const amountText = `-${this.invoice.currency} ${discount.amount
+        const amountText = `- ${this.invoice.currency} ${discount.amount
           .toFixed(2)
           .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
 

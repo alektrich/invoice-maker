@@ -47,9 +47,29 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
       templateId,
       issuer: {
         companyName: "",
+        contactPerson: "",
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        country: "",
+        phone: "",
+        email: "",
+        taxId: "",
       },
       client: {
         companyName: "",
+        contactPerson: "",
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        country: "",
+        phone: "",
+        email: "",
+        taxId: "",
       },
       items: [
         {
@@ -98,9 +118,41 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
 
         if (stored) {
           const parsed = JSON.parse(stored);
+          // Ensure all optional string fields default to empty string instead of undefined
+          const normalizedParsed = {
+            ...parsed,
+            issuer: {
+              companyName: "",
+              contactPerson: "",
+              addressLine1: "",
+              addressLine2: "",
+              city: "",
+              state: "",
+              zipCode: "",
+              country: "",
+              phone: "",
+              email: "",
+              taxId: "",
+              ...parsed.issuer,
+            },
+            client: {
+              companyName: "",
+              contactPerson: "",
+              addressLine1: "",
+              addressLine2: "",
+              city: "",
+              state: "",
+              zipCode: "",
+              country: "",
+              phone: "",
+              email: "",
+              taxId: "",
+              ...parsed.client,
+            },
+          };
           reset({
             ...baseDefaults,
-            ...parsed,
+            ...normalizedParsed,
             templateId,
           });
         } else {
