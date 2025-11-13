@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useForm } from "react-hook-form";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ContactInfoForm } from "./ContactInfoForm";
 import { InvoiceItemsForm } from "./InvoiceItemsForm";
@@ -11,35 +11,65 @@ import {
 } from "@/lib/validations/invoice";
 import { generateInvoicePDF, downloadPDF } from "@/lib/services/pdf-generator";
 import { generateInvoiceId } from "@/lib/utils/invoice-calculations";
+import { INVOICE_FORM_STORAGE_KEY } from "@/lib/constants/storage";
+import {
+  getInvoiceTemplate,
+  InvoiceTemplate,
+} from "@/lib/templates/invoice-templates";
 
 interface InvoiceFormProps {
+  templateId: string;
   onPDFGenerated?: (pdfBlob: Blob, invoiceId?: string) => void;
+  onChangeTemplate?: () => void;
 }
 
-export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onPDFGenerated }) => {
+export const InvoiceForm: React.FC<InvoiceFormProps> = ({
+  templateId,
+  onPDFGenerated,
+  onChangeTemplate,
+}) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPDF, setGeneratedPDF] = useState<Blob | null>(null);
+  const template = useMemo<InvoiceTemplate>(
+    () => getInvoiceTemplate(templateId),
+    [templateId]
+  );
 
-  const {
-    control,
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors, isValid },
-  } = useForm<InvoiceFormValues>({
-    resolver: zodResolver(invoiceFormSchema),
-    defaultValues: {
+  const defaultValuesRef = useRef<InvoiceFormValues | null>(null);
+
+  if (!defaultValuesRef.current) {
+    defaultValuesRef.current = {
       invoiceId: generateInvoiceId(),
       invoiceDate: new Date().toISOString().split("T")[0],
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         .toISOString()
         .split("T")[0],
+      templateId,
       issuer: {
         companyName: "",
+        contactPerson: "",
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        country: "",
+        phone: "",
+        email: "",
+        taxId: "",
       },
       client: {
         companyName: "",
+        contactPerson: "",
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        country: "",
+        phone: "",
+        email: "",
+        taxId: "",
       },
       items: [
         {
@@ -52,9 +82,130 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onPDFGenerated }) => {
       discounts: [],
       taxRate: 0,
       currency: "$",
-    },
+    };
+  }
+
+  const {
+    control,
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    getValues,
+    formState: { errors, isValid },
+  } = useForm<InvoiceFormValues>({
+    resolver: zodResolver(invoiceFormSchema),
+    defaultValues: defaultValuesRef.current ?? undefined,
     mode: "onChange",
   });
+
+  const hasHydratedRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      hasHydratedRef.current = true;
+      return;
+    }
+
+    if (!hasHydratedRef.current) {
+      try {
+        const stored = localStorage.getItem(INVOICE_FORM_STORAGE_KEY);
+        const baseDefaults = {
+          ...(defaultValuesRef.current as InvoiceFormValues),
+          templateId,
+        };
+
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          // Ensure all optional string fields default to empty string instead of undefined
+          const normalizedParsed = {
+            ...parsed,
+            // Always ensure invoiceId, invoiceDate, and dueDate are set (they're not persisted)
+            invoiceId: parsed.invoiceId || baseDefaults.invoiceId,
+            invoiceDate: parsed.invoiceDate || baseDefaults.invoiceDate,
+            dueDate: parsed.dueDate || baseDefaults.dueDate,
+            issuer: {
+              companyName: "",
+              contactPerson: "",
+              addressLine1: "",
+              addressLine2: "",
+              city: "",
+              state: "",
+              zipCode: "",
+              country: "",
+              phone: "",
+              email: "",
+              taxId: "",
+              ...parsed.issuer,
+            },
+            client: {
+              companyName: "",
+              contactPerson: "",
+              addressLine1: "",
+              addressLine2: "",
+              city: "",
+              state: "",
+              zipCode: "",
+              country: "",
+              phone: "",
+              email: "",
+              taxId: "",
+              ...parsed.client,
+            },
+          };
+          reset({
+            ...baseDefaults,
+            ...normalizedParsed,
+            templateId,
+          });
+        } else {
+          reset(baseDefaults);
+        }
+      } catch (error) {
+        console.error("Error loading invoice draft from storage:", error);
+        reset({
+          ...(defaultValuesRef.current as InvoiceFormValues),
+          templateId,
+        });
+      }
+      hasHydratedRef.current = true;
+      return;
+    }
+
+    if (getValues("templateId") !== templateId) {
+      setValue("templateId", templateId, { shouldDirty: true });
+    }
+  }, [getValues, reset, setValue, templateId]);
+
+  useEffect(() => {
+    const subscription = watch((value) => {
+      if (!hasHydratedRef.current) {
+        return;
+      }
+
+      const { invoiceId, invoiceDate, dueDate, ...persistable } =
+        value as InvoiceFormValues;
+
+      try {
+        localStorage.setItem(
+          INVOICE_FORM_STORAGE_KEY,
+          JSON.stringify(persistable)
+        );
+      } catch (error) {
+        console.error("Error saving invoice draft to storage:", error);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [watch]);
+
+  useEffect(() => {
+    if (!hasHydratedRef.current) {
+      return;
+    }
+    setGeneratedPDF(null);
+  }, [templateId]);
 
   const watchedData = watch();
 
@@ -79,19 +230,63 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onPDFGenerated }) => {
   };
 
   const handleGenerateNewId = () => {
-    setValue("invoiceId", generateInvoiceId());
+    setValue("invoiceId", generateInvoiceId(), { shouldValidate: true, shouldDirty: true });
   };
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900">Invoice Generator</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Create professional invoices quickly and easily
-        </p>
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Step 2 of 2
+            </span>
+            <h1 className="mt-2 text-3xl font-bold text-gray-900">
+              Provide Invoice Details
+            </h1>
+            <p className="mt-1 text-sm text-gray-600">
+              Review your template selection and complete the form to generate
+              your invoice.
+            </p>
+          </div>
+
+          {onChangeTemplate && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onChangeTemplate}
+              className="whitespace-nowrap"
+            >
+              Change Template
+            </Button>
+          )}
+        </div>
+
+        <div className="mt-6 flex flex-col gap-4 rounded-lg bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Selected Template
+            </p>
+            <p
+              className="mt-1 text-xl font-semibold"
+              style={{ color: template.accentHex }}
+            >
+              {template.name}
+            </p>
+            <p className="mt-1 text-sm text-gray-600">{template.description}</p>
+          </div>
+          <div
+            className="h-16 w-full rounded-md sm:w-40"
+            style={{
+              backgroundImage: `linear-gradient(135deg, ${template.previewGradient[0]}, ${template.previewGradient[1]})`,
+            }}
+            aria-hidden="true"
+          />
+        </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        <input type="hidden" {...register("templateId")} />
         {/* Invoice Details Section */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
@@ -104,11 +299,18 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onPDFGenerated }) => {
                 Invoice ID
               </label>
               <div className="flex space-x-2">
-                <Input
-                  {...register("invoiceId")}
-                  error={errors.invoiceId?.message}
-                  placeholder="INV-2024-001"
-                  className="flex-1"
+                <Controller
+                  name="invoiceId"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      value={field.value || ""}
+                      error={errors.invoiceId?.message}
+                      placeholder="INV-2024-001"
+                      className="flex-1"
+                    />
+                  )}
                 />
                 <button
                   type="button"
@@ -137,31 +339,56 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ onPDFGenerated }) => {
               </div>
             </div>
 
-            <Input
-              {...register("invoiceDate")}
-              label="Invoice Date"
-              type="date"
-              error={errors.invoiceDate?.message}
+            <Controller
+              name="invoiceDate"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  value={field.value || ""}
+                  label="Invoice Date"
+                  type="date"
+                  error={errors.invoiceDate?.message}
+                />
+              )}
             />
 
-            <Input
-              {...register("dueDate")}
-              label="Due Date"
-              type="date"
-              error={errors.dueDate?.message}
+            <Controller
+              name="dueDate"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  value={field.value || ""}
+                  label="Due Date"
+                  type="date"
+                  error={errors.dueDate?.message}
+                />
+              )}
             />
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <Input
-              {...register("taxRate", { valueAsNumber: true })}
-              label="Tax Rate (%)"
-              type="number"
-              step="0.01"
-              min="0"
-              max="100"
-              error={errors.taxRate?.message}
-              placeholder="0.00"
+            <Controller
+              name="taxRate"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  value={field.value === undefined || field.value === null ? "" : String(field.value)}
+                  onChange={(e) => {
+                    const value = e.target.value === "" ? 0 : parseFloat(e.target.value) || 0;
+                    field.onChange(value);
+                  }}
+                  label="Tax Rate (%)"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  error={errors.taxRate?.message}
+                  placeholder="0.00"
+                />
+              )}
             />
 
             <div>

@@ -1,5 +1,5 @@
 import React from "react";
-import { Control, useFieldArray } from "react-hook-form";
+import { Control, useFieldArray, Controller } from "react-hook-form";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { InvoiceFormValues } from "@/lib/validations/invoice";
@@ -79,10 +79,17 @@ export const InvoiceItemsForm: React.FC<InvoiceItemsFormProps> = ({
             >
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <Input
-                    {...(control as any).register(`items.${index}.description`)}
-                    label="Description"
-                    placeholder="Enter item description"
+                  <Controller
+                    name={`items.${index}.description`}
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        value={field.value ?? ""}
+                        label="Description"
+                        placeholder="Enter item description"
+                      />
+                    )}
                   />
                 </div>
                 <div className="flex items-end mb-1">
@@ -100,28 +107,50 @@ export const InvoiceItemsForm: React.FC<InvoiceItemsFormProps> = ({
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>
-                  <Input
-                    {...(control as any).register(`items.${index}.quantity`, {
-                      valueAsNumber: true,
-                    })}
-                    label="Quantity"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0"
+                  <Controller
+                    name={`items.${index}.quantity`}
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        name={field.name}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        value={field.value === undefined || field.value === null ? "" : String(field.value)}
+                        onChange={(e) => {
+                          const value = e.target.value === "" ? 0 : parseFloat(e.target.value) || 0;
+                          field.onChange(value);
+                        }}
+                        label="Quantity"
+                        type="number"
+                        step="1"
+                        min="0"
+                        placeholder="0"
+                      />
+                    )}
                   />
                 </div>
 
                 <div>
-                  <Input
-                    {...(control as any).register(`items.${index}.rate`, {
-                      valueAsNumber: true,
-                    })}
-                    label="Rate"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
+                  <Controller
+                    name={`items.${index}.rate`}
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        name={field.name}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        value={field.value === undefined || field.value === null ? "" : String(field.value)}
+                        onChange={(e) => {
+                          const value = e.target.value === "" ? 0 : parseFloat(e.target.value) || 0;
+                          field.onChange(value);
+                        }}
+                        label="Rate"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                      />
+                    )}
                   />
                 </div>
 
@@ -165,25 +194,41 @@ export const InvoiceItemsForm: React.FC<InvoiceItemsFormProps> = ({
                 className="grid grid-cols-1 gap-4 rounded-lg border border-gray-200 p-4 sm:grid-cols-6"
               >
                 <div className="sm:col-span-4">
-                  <Input
-                    {...(control as any).register(
-                      `discounts.${index}.description`
+                  <Controller
+                    name={`discounts.${index}.description`}
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        value={field.value ?? ""}
+                        label="Discount Description"
+                        placeholder="Enter discount description"
+                      />
                     )}
-                    label="Discount Description"
-                    placeholder="Enter discount description"
                   />
                 </div>
 
                 <div className="sm:col-span-1">
-                  <Input
-                    {...(control as any).register(`discounts.${index}.amount`, {
-                      valueAsNumber: true,
-                    })}
-                    label="Amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
+                  <Controller
+                    name={`discounts.${index}.amount`}
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        name={field.name}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        value={field.value === undefined || field.value === null ? "" : String(field.value)}
+                        onChange={(e) => {
+                          const value = e.target.value === "" ? 0 : parseFloat(e.target.value) || 0;
+                          field.onChange(value);
+                        }}
+                        label="Amount"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                      />
+                    )}
                   />
                 </div>
 

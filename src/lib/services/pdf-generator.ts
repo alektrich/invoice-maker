@@ -4,6 +4,11 @@ import {
   calculateInvoiceAmounts,
   formatCurrency,
 } from "@/lib/utils/invoice-calculations";
+import {
+  getInvoiceTemplate,
+  InvoiceTemplate,
+  InvoiceTemplatePalette,
+} from "@/lib/templates/invoice-templates";
 
 export class InvoicePDFGenerator {
   private doc: jsPDF;
@@ -11,6 +16,8 @@ export class InvoicePDFGenerator {
   private pageWidth: number;
   private pageHeight: number;
   private margin: number;
+  private template: InvoiceTemplate;
+  private palette: InvoiceTemplatePalette;
 
   constructor(invoice: InvoiceData) {
     this.invoice = invoice;
@@ -18,6 +25,8 @@ export class InvoicePDFGenerator {
     this.pageWidth = this.doc.internal.pageSize.width;
     this.pageHeight = this.doc.internal.pageSize.height;
     this.margin = 72; // 1 inch margins
+    this.template = getInvoiceTemplate(invoice.templateId);
+    this.palette = this.template.palette;
   }
 
   generatePDF(): jsPDF {
@@ -31,30 +40,48 @@ export class InvoicePDFGenerator {
     return this.doc;
   }
 
+  private setTextColor(color: [number, number, number]): void {
+    this.doc.setTextColor(color[0], color[1], color[2]);
+  }
+
+  private setFillColor(color: [number, number, number]): void {
+    this.doc.setFillColor(color[0], color[1], color[2]);
+  }
+
+  private setDrawColor(color: [number, number, number]): void {
+    this.doc.setDrawColor(color[0], color[1], color[2]);
+  }
+
   private addHeader(): void {
-    // Title with Invoice ID (improved as requested)
-    this.doc.setFontSize(20); // Reduced from 24 as requested
+    this.setFillColor(this.palette.accent);
+    this.doc.rect(0, 0, this.pageWidth, 90, "F");
+
     this.doc.setFont("helvetica", "bold");
-    this.doc.setTextColor(25, 25, 112); // Dark blue color
+    this.doc.setFontSize(26);
+    this.doc.setTextColor(255, 255, 255);
+    this.doc.text("INVOICE", this.margin, 45);
 
-    const titleText = `INVOICE #${this.invoice.invoiceId}`;
-    const titleWidth = this.doc.getTextWidth(titleText);
-    const titleX = (this.pageWidth - titleWidth) / 2;
-
-    this.doc.text(titleText, titleX, 100);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setFontSize(12);
+    this.doc.text(`#${this.invoice.invoiceId}`, this.margin, 65);
   }
 
   private addInvoiceDetails(): void {
-    let yPos = 150;
+    let yPos = 140;
 
-    this.doc.setFontSize(10);
+    this.doc.setFont("helvetica", "bold");
+    this.doc.setFontSize(12);
+    this.setTextColor(this.palette.headerText);
+    this.doc.text("Invoice Details", this.margin, yPos);
+    yPos += 24;
+
     this.doc.setFont("helvetica", "normal");
-    this.doc.setTextColor(0, 0, 0);
+    this.doc.setFontSize(10);
 
-    const details = [
-      ["Invoice ID:", this.invoice.invoiceId],
+    const details: Array<[string, string]> = [
+      ["Invoice ID", this.invoice.invoiceId],
       [
-        "Invoice Date:",
+        "Invoice Date",
         new Date(this.invoice.invoiceDate).toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
@@ -62,7 +89,7 @@ export class InvoicePDFGenerator {
         }),
       ],
       [
-        "Due Date:",
+        "Due Date",
         new Date(this.invoice.dueDate).toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
@@ -73,23 +100,26 @@ export class InvoicePDFGenerator {
 
     details.forEach(([label, value]) => {
       this.doc.setFont("helvetica", "bold");
-      this.doc.text(label, this.margin, yPos);
+      this.setTextColor(this.palette.headerSubtext);
+      this.doc.text(`${label}:`, this.margin, yPos);
+
       this.doc.setFont("helvetica", "normal");
-      this.doc.text(value, this.margin + 80, yPos);
-      yPos += 20;
+      this.setTextColor(this.palette.bodyText);
+      this.doc.text(value, this.margin + 90, yPos);
+      yPos += 18;
     });
+
+    this.setDrawColor(this.palette.border);
+    this.doc.line(this.margin, yPos + 6, this.pageWidth - this.margin, yPos + 6);
   }
 
   private addPartiesInfo(): void {
-    const yStart = 250;
+    const yStart = 280;
 
-    // Bill From (left side)
-    this.addContactInfo(this.invoice.issuer, "Bill From:", this.margin, yStart);
-
-    // Bill To (right side)
+    this.addContactInfo(this.invoice.issuer, "Bill From", this.margin, yStart);
     this.addContactInfo(
       this.invoice.client,
-      "Bill To:",
+      "Bill To",
       this.pageWidth / 2,
       yStart
     );
@@ -103,24 +133,27 @@ export class InvoicePDFGenerator {
   ): void {
     let yPos = y;
 
-    this.doc.setFontSize(12);
     this.doc.setFont("helvetica", "bold");
+    this.doc.setFontSize(12);
+    this.setTextColor(this.palette.headerText);
     this.doc.text(title, x, yPos);
-    yPos += 20;
+    yPos += 22;
 
+    this.doc.setFont("helvetica", "normal");
     this.doc.setFontSize(10);
+    this.setTextColor(this.palette.bodyText);
 
     if (contact.companyName) {
       this.doc.setFont("helvetica", "bold");
+      this.setTextColor(this.palette.headerText);
       this.doc.text(contact.companyName, x, yPos);
-      yPos += 15;
+      yPos += 16;
+      this.doc.setFont("helvetica", "normal");
+      this.setTextColor(this.palette.bodyText);
     }
 
-    this.doc.setFont("helvetica", "normal");
+    const excludeContact = title === "Bill From";
 
-    // For Bill From (issuer), exclude phone and email
-    const excludeContact = title === "Bill From:";
-    
     const contactLines = [
       contact.contactPerson,
       contact.addressLine1,
@@ -130,132 +163,142 @@ export class InvoicePDFGenerator {
       !excludeContact ? contact.phone : "",
       !excludeContact ? contact.email : "",
       contact.taxId ? `Tax ID: ${contact.taxId}` : "",
-    ].filter(Boolean);
+    ].filter((value): value is string => Boolean(value));
 
     contactLines.forEach((line) => {
-      if (line) {
-        this.doc.text(line, x, yPos);
-        yPos += 15;
-      }
+      this.doc.text(line, x, yPos);
+      yPos += 14;
     });
   }
 
   private addItemsTable(): void {
-    const yStart = 400;
-    const calculations = calculateInvoiceAmounts(this.invoice);
+    const yStart = 420;
 
-    // Table headers
-    this.doc.setFontSize(10);
     this.doc.setFont("helvetica", "bold");
+    this.doc.setFontSize(10);
 
     const headers = ["Description", "Qty", "Rate", "Total"];
-    const colWidths = [250, 60, 80, 80];
+    const availableWidth = this.pageWidth - this.margin * 2;
+    const colWidths = [260, 60, 80, availableWidth - 260 - 60 - 80];
     const colPositions = [this.margin];
 
     for (let i = 1; i < colWidths.length; i++) {
       colPositions.push(colPositions[i - 1] + colWidths[i - 1]);
     }
 
-    // Draw header row
-    let yPos = yStart;
+    this.setFillColor(this.palette.tableHeaderFill);
+    this.doc.rect(
+      this.margin,
+      yStart - 14,
+      this.pageWidth - this.margin * 2,
+      26,
+      "F"
+    );
+
+    this.setTextColor(this.palette.tableHeaderText);
     headers.forEach((header, index) => {
       if (index === 0) {
-        // Left align description
-        this.doc.text(header, colPositions[index], yPos);
+        this.doc.text(header, colPositions[index], yStart);
       } else {
-        // Right align Qty, Rate, Total
         const textWidth = this.doc.getTextWidth(header);
         this.doc.text(
           header,
           colPositions[index] + colWidths[index] - textWidth,
-          yPos
+          yStart
         );
       }
     });
 
-    // Draw header line
-    yPos += 5;
-    this.doc.line(this.margin, yPos, this.pageWidth - this.margin, yPos);
-    yPos += 20;
+    this.setDrawColor(this.palette.border);
+    this.doc.line(this.margin, yStart + 8, this.pageWidth - this.margin, yStart + 8);
 
-    // Draw items
+    let yPos = yStart + 26;
     this.doc.setFont("helvetica", "normal");
-    this.invoice.items.forEach((item) => {
+    this.setTextColor(this.palette.bodyText);
+
+    this.invoice.items.forEach((item, index) => {
       const total = item.quantity * item.rate;
       const rowData = [
         item.description,
         item.quantity.toString(),
-        `${this.invoice.currency} ${item.rate.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
-        `${this.invoice.currency} ${total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
+        `${this.invoice.currency} ${item.rate
+          .toFixed(2)
+          .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
+        `${this.invoice.currency} ${total
+          .toFixed(2)
+          .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
       ];
 
-      rowData.forEach((data, index) => {
-        if (index === 0) {
-          // Left align description
-          this.doc.text(data, colPositions[index], yPos);
+      if (index % 2 === 1) {
+        this.setFillColor(this.palette.accentLight);
+        this.doc.rect(
+          this.margin,
+          yPos - 12,
+          this.pageWidth - this.margin * 2,
+          22,
+          "F"
+        );
+      }
+
+      rowData.forEach((data, columnIndex) => {
+        if (columnIndex === 0) {
+          this.doc.text(data, colPositions[columnIndex], yPos);
         } else {
-          // Right align numbers
           const textWidth = this.doc.getTextWidth(data);
           this.doc.text(
             data,
-            colPositions[index] + colWidths[index] - textWidth,
+            colPositions[columnIndex] + colWidths[columnIndex] - textWidth,
             yPos
           );
         }
       });
-      yPos += 20;
+
+      yPos += 22;
     });
 
-    // Add discounts only if there are multiple discounts
-    if (this.invoice.discounts.length > 1) {
-      this.invoice.discounts.forEach((discount) => {
-        const rowData = [
-          discount.description,
-          "",
-          "",
-          `-${this.invoice.currency} ${discount.amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
-        ];
+    if (this.invoice.discounts.length > 0) {
+      this.doc.setFont("helvetica", "italic");
+      this.setTextColor(this.palette.headerSubtext);
 
-        rowData.forEach((data, index) => {
-          if (index === 0) {
-            this.doc.text(data, colPositions[index], yPos);
-          } else if (data) {
-            const textWidth = this.doc.getTextWidth(data);
-            this.doc.text(
-              data,
-              colPositions[index] + colWidths[index] - textWidth,
-              yPos
-            );
-          }
-        });
+      this.invoice.discounts.forEach((discount) => {
+        const amountText = `- ${this.invoice.currency} ${discount.amount
+          .toFixed(2)
+          .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+
+        this.doc.text(discount.description, colPositions[0], yPos);
+
+        const amountWidth = this.doc.getTextWidth(amountText);
+        this.doc.text(
+          amountText,
+          colPositions[3] + colWidths[3] - amountWidth,
+          yPos
+        );
+
         yPos += 20;
       });
+
+      this.doc.setFont("helvetica", "normal");
+      this.setTextColor(this.palette.bodyText);
     }
   }
 
   private addTotals(): void {
     const calculations = calculateInvoiceAmounts(this.invoice);
-    const yStart = 600;
     const rightAlign = this.pageWidth - this.margin;
+    let yPos = 600;
 
-    let yPos = yStart;
-
-    this.doc.setFontSize(10);
     this.doc.setFont("helvetica", "normal");
+    this.doc.setFontSize(10);
 
-    const totals = [
-      [
-        "Subtotal:",
-        formatCurrency(calculations.subtotal, this.invoice.currency),
-      ],
+    const totals: Array<[string, string]> = [
+      ["Subtotal", formatCurrency(calculations.subtotal, this.invoice.currency)],
     ];
 
     if (calculations.discountTotal !== 0) {
-      // If single discount, show its description, otherwise show generic "Discount"
-      const discountLabel = 
-        this.invoice.discounts.length === 1 
-          ? `${this.invoice.discounts[0].description}:`
-          : "Discount:";
+      const discountLabel =
+        this.invoice.discounts.length === 1
+          ? this.invoice.discounts[0].description
+          : "Discount";
       totals.push([
         discountLabel,
         formatCurrency(calculations.discountTotal, this.invoice.currency),
@@ -264,13 +307,13 @@ export class InvoicePDFGenerator {
 
     if (this.invoice.taxRate > 0) {
       totals.push([
-        `Tax (${this.invoice.taxRate}%):`,
+        `Tax (${this.invoice.taxRate}%)`,
         formatCurrency(calculations.taxAmount, this.invoice.currency),
       ]);
     }
 
     totals.push([
-      "Total:",
+      "Total Due",
       formatCurrency(calculations.totalAmount, this.invoice.currency),
     ]);
 
@@ -278,51 +321,52 @@ export class InvoicePDFGenerator {
       const isTotal = index === totals.length - 1;
 
       if (isTotal) {
+        this.setFillColor(this.palette.accentLight);
+        this.doc.rect(rightAlign - 210, yPos - 14, 210, 26, "F");
         this.doc.setFont("helvetica", "bold");
         this.doc.setFontSize(12);
+        this.setTextColor(this.palette.accent);
+      } else {
+        this.doc.setFont("helvetica", "normal");
+        this.doc.setFontSize(10);
+        this.setTextColor(this.palette.bodyText);
       }
 
-      // Right align both label and amount
       const amountWidth = this.doc.getTextWidth(amount);
-      const labelWidth = this.doc.getTextWidth(label);
+      const labelWidth = this.doc.getTextWidth(`${label}:`);
 
       this.doc.text(amount, rightAlign - amountWidth, yPos);
-      this.doc.text(label, rightAlign - amountWidth - 30 - labelWidth, yPos);
+      this.doc.text(`${label}:`, rightAlign - amountWidth - 24 - labelWidth, yPos);
 
       if (isTotal) {
-        // Draw line above total, aligned with "Total:" text
-        const totalLabelWidth = this.doc.getTextWidth("Total:");
-        const lineStartX = rightAlign - amountWidth - 30 - totalLabelWidth;
-        this.doc.line(
-          lineStartX,
-          yPos - 15,
-          rightAlign,
-          yPos - 15
-        );
+        this.setDrawColor(this.palette.accent);
+        this.doc.line(rightAlign - 210, yPos - 18, rightAlign, yPos - 18);
       }
 
-      yPos += isTotal ? 25 : 20;
+      yPos += isTotal ? 30 : 22;
     });
   }
 
   private addFooter(): void {
     const yPos = this.pageHeight - 50;
 
-    this.doc.setFontSize(8);
-    this.doc.setFont("helvetica", "normal");
-    this.doc.setTextColor(128, 128, 128);
+    this.setDrawColor(this.palette.border);
+    this.doc.line(this.margin, yPos - 20, this.pageWidth - this.margin, yPos - 20);
 
-    // Show issuer contact information in footer
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setFontSize(8);
+    this.setTextColor(this.palette.footerText);
+
     const contactInfo: string[] = [];
-    
+
     if (this.invoice.issuer.email) {
       contactInfo.push(`Email: ${this.invoice.issuer.email}`);
     }
-    
+
     if (this.invoice.issuer.phone) {
       contactInfo.push(`Phone: ${this.invoice.issuer.phone}`);
     }
-    
+
     if (contactInfo.length > 0) {
       const footerText = contactInfo.join(" | ");
       const textWidth = this.doc.getTextWidth(footerText);
