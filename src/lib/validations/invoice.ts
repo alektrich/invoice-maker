@@ -39,6 +39,10 @@ export const invoiceFormSchema = z
     discounts: z.array(discountItemSchema).default([]),
     taxRate: z.number().min(0).max(100, "Tax rate must be between 0 and 100"),
     currency: z.string().min(1, "Currency is required"),
+    language: z.enum(["en", "sr"]).default("en"),
+    bankAccount: z.string().optional().default(""),
+    vatExemptNote: z.boolean().optional().default(false),
+    placeOfIssue: z.string().optional().default(""),
   })
   .refine(
     (data) => {

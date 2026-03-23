@@ -36,6 +36,10 @@ export interface InvoiceData {
   discounts: DiscountItem[];
   taxRate: number; // Percentage (e.g., 10.5 for 10.5%)
   currency: string; // Currency symbol
+  language: "en" | "sr";
+  bankAccount?: string;
+  vatExemptNote?: boolean;
+  placeOfIssue?: string;
 }
 
 export interface InvoiceCalculations {

@@ -16,20 +16,25 @@ import {
   getInvoiceTemplate,
   InvoiceTemplate,
 } from "@/lib/templates/invoice-templates";
+import { Language, t } from "@/lib/i18n/translations";
 
 interface InvoiceFormProps {
   templateId: string;
   onPDFGenerated?: (pdfBlob: Blob, invoiceId?: string) => void;
   onChangeTemplate?: () => void;
+  language: Language;
 }
 
 export const InvoiceForm: React.FC<InvoiceFormProps> = ({
   templateId,
   onPDFGenerated,
   onChangeTemplate,
+  language,
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPDF, setGeneratedPDF] = useState<Blob | null>(null);
+  const [includeVat, setIncludeVat] = useState(false);
+  const tr = t(language);
   const template = useMemo<InvoiceTemplate>(
     () => getInvoiceTemplate(templateId),
     [templateId]
@@ -82,6 +87,10 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
       discounts: [],
       taxRate: 0,
       currency: "$",
+      language: "en",
+      bankAccount: "",
+      vatExemptNote: false,
+      placeOfIssue: "",
     };
   }
 
@@ -178,6 +187,13 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
     }
   }, [getValues, reset, setValue, templateId]);
 
+  // Sync language prop into form
+  useEffect(() => {
+    if (hasHydratedRef.current) {
+      setValue("language", language);
+    }
+  }, [language, setValue]);
+
   useEffect(() => {
     const subscription = watch((value) => {
       if (!hasHydratedRef.current) {
@@ -217,7 +233,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
       onPDFGenerated?.(pdfBlob, data.invoiceId);
     } catch (error) {
       console.error("Error generating PDF:", error);
-      // You might want to show a toast or error message here
     } finally {
       setIsGenerating(false);
     }
@@ -233,20 +248,28 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
     setValue("invoiceId", generateInvoiceId(), { shouldValidate: true, shouldDirty: true });
   };
 
+  const handleVatToggle = (checked: boolean) => {
+    setIncludeVat(checked);
+    if (checked) {
+      setValue("taxRate", 20, { shouldValidate: true });
+    } else {
+      setValue("taxRate", 0, { shouldValidate: true });
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Step 2 of 2
+              {tr.step2of2}
             </span>
             <h1 className="mt-2 text-3xl font-bold text-gray-900">
-              Provide Invoice Details
+              {tr.provideDetails}
             </h1>
             <p className="mt-1 text-sm text-gray-600">
-              Review your template selection and complete the form to generate
-              your invoice.
+              {tr.provideDetailsDesc}
             </p>
           </div>
 
@@ -257,7 +280,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
               onClick={onChangeTemplate}
               className="whitespace-nowrap"
             >
-              Change Template
+              {tr.changeTemplate}
             </Button>
           )}
         </div>
@@ -265,7 +288,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
         <div className="mt-6 flex flex-col gap-4 rounded-lg bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Selected Template
+              {tr.selectedTemplate}
             </p>
             <p
               className="mt-1 text-xl font-semibold"
@@ -287,16 +310,17 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         <input type="hidden" {...register("templateId")} />
+        <input type="hidden" {...register("language")} />
         {/* Invoice Details Section */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            Invoice Details
+            {tr.invoiceDetails}
           </h2>
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <div className="sm:col-span-2 lg:col-span-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Invoice ID
+                {tr.invoiceId}
               </label>
               <div className="flex space-x-2">
                 <Controller
@@ -316,7 +340,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
                   type="button"
                   onClick={handleGenerateNewId}
                   className="group relative inline-flex h-10 w-10 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                  aria-label="Generate new invoice ID"
+                  aria-label={tr.generateId}
                 >
                   <svg
                     className="h-4 w-4"
@@ -333,7 +357,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
                     />
                   </svg>
                   <span className="absolute bottom-full mb-2 hidden whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white group-hover:block">
-                    Generate ID
+                    {tr.generateId}
                   </span>
                 </button>
               </div>
@@ -346,7 +370,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 <Input
                   {...field}
                   value={field.value || ""}
-                  label="Invoice Date"
+                  label={tr.invoiceDate}
                   type="date"
                   error={errors.invoiceDate?.message}
                 />
@@ -360,7 +384,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 <Input
                   {...field}
                   value={field.value || ""}
-                  label="Due Date"
+                  label={tr.dueDate}
                   type="date"
                   error={errors.dueDate?.message}
                 />
@@ -369,31 +393,45 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <Controller
-              name="taxRate"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  value={field.value === undefined || field.value === null ? "" : String(field.value)}
-                  onChange={(e) => {
-                    const value = e.target.value === "" ? 0 : parseFloat(e.target.value) || 0;
-                    field.onChange(value);
-                  }}
-                  label="Tax Rate (%)"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  error={errors.taxRate?.message}
-                  placeholder="0.00"
-                />
+            <div>
+              <Controller
+                name="taxRate"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    value={field.value === undefined || field.value === null ? "" : String(field.value)}
+                    onChange={(e) => {
+                      const value = e.target.value === "" ? 0 : parseFloat(e.target.value) || 0;
+                      field.onChange(value);
+                    }}
+                    label={tr.taxRate}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    error={errors.taxRate?.message}
+                    placeholder="0.00"
+                    disabled={language === "sr" && includeVat}
+                  />
+                )}
+              />
+              {language === "sr" && (
+                <label className="mt-3 flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeVat}
+                    onChange={(e) => handleVatToggle(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-sm text-gray-700">{tr.includeVat}</span>
+                </label>
               )}
-            />
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Currency
+                {tr.currency}
               </label>
               <select
                 {...register("currency")}
@@ -404,6 +442,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 <option value="£">GBP (£)</option>
                 <option value="¥">JPY (¥)</option>
                 <option value="₹">INR (₹)</option>
+                <option value="RSD">RSD</option>
               </select>
               {errors.currency && (
                 <p className="mt-1 text-sm text-red-600">
@@ -412,6 +451,45 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
               )}
             </div>
           </div>
+
+          {language === "sr" && (
+            <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <Controller
+                name="bankAccount"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    value={field.value || ""}
+                    label={tr.bankAccount}
+                    placeholder="265-6190310001123-39"
+                  />
+                )}
+              />
+              <Controller
+                name="placeOfIssue"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    value={field.value || ""}
+                    label={tr.placeOfIssue}
+                    placeholder="Beograd"
+                  />
+                )}
+              />
+              <div className="flex items-end">
+                <label className="flex items-center gap-2 cursor-pointer pb-2">
+                  <input
+                    type="checkbox"
+                    {...register("vatExemptNote")}
+                    className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-sm text-gray-700">{tr.vatExemptNote}</span>
+                </label>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Issuer Information */}
@@ -419,7 +497,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
           <ContactInfoForm
             control={control}
             name="issuer"
-            title="Bill From (Your Information)"
+            title={tr.billFromYourInfo}
+            language={language}
           />
         </div>
 
@@ -428,13 +507,14 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
           <ContactInfoForm
             control={control}
             name="client"
-            title="Bill To (Client Information)"
+            title={tr.billToClientInfo}
+            language={language}
           />
         </div>
 
         {/* Invoice Items and Summary */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <InvoiceItemsForm control={control} watch={watch} />
+          <InvoiceItemsForm control={control} watch={watch} language={language} />
         </div>
 
         {/* Form Actions */}
@@ -445,7 +525,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
             disabled={!isValid || isGenerating}
             className="flex-1"
           >
-            {isGenerating ? "Generating PDF..." : "Generate Invoice PDF"}
+            {isGenerating ? tr.generatingPdf : tr.generateInvoicePdf}
           </Button>
 
           {generatedPDF && (
@@ -455,7 +535,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
               variant="outline"
               className="flex-1"
             >
-              Download PDF
+              {tr.downloadPdf}
             </Button>
           )}
         </div>
@@ -464,7 +544,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
         {Object.keys(errors).length > 0 && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4">
             <h3 className="text-sm font-medium text-red-800">
-              Please fix the following errors:
+              {tr.fixErrors}
             </h3>
             <ul className="mt-2 text-sm text-red-700">
               {Object.entries(errors).map(([field, error]) => (

@@ -7,16 +7,21 @@ import {
   calculateInvoiceAmounts,
   formatCurrency,
 } from "@/lib/utils/invoice-calculations";
+import { Language, t } from "@/lib/i18n/translations";
 
 interface InvoiceItemsFormProps {
   control: Control<InvoiceFormValues>;
   watch: (name?: string) => any;
+  language: Language;
 }
 
 export const InvoiceItemsForm: React.FC<InvoiceItemsFormProps> = ({
   control,
   watch,
+  language,
 }) => {
+  const tr = t(language);
+
   const {
     fields: itemFields,
     append: appendItem,
@@ -60,14 +65,14 @@ export const InvoiceItemsForm: React.FC<InvoiceItemsFormProps> = ({
       {/* Invoice Items Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Invoice Items</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{tr.invoiceItems}</h3>
           <Button
             type="button"
             onClick={handleAddItem}
             variant="outline"
             size="sm"
           >
-            + Add Item
+            {tr.addItem}
           </Button>
         </div>
 
@@ -86,8 +91,8 @@ export const InvoiceItemsForm: React.FC<InvoiceItemsFormProps> = ({
                       <Input
                         {...field}
                         value={field.value ?? ""}
-                        label="Description"
-                        placeholder="Enter item description"
+                        label={tr.description}
+                        placeholder={tr.description}
                       />
                     )}
                   />
@@ -120,7 +125,7 @@ export const InvoiceItemsForm: React.FC<InvoiceItemsFormProps> = ({
                           const value = e.target.value === "" ? 0 : parseFloat(e.target.value) || 0;
                           field.onChange(value);
                         }}
-                        label="Quantity"
+                        label={tr.quantity}
                         type="number"
                         step="1"
                         min="0"
@@ -144,7 +149,7 @@ export const InvoiceItemsForm: React.FC<InvoiceItemsFormProps> = ({
                           const value = e.target.value === "" ? 0 : parseFloat(e.target.value) || 0;
                           field.onChange(value);
                         }}
-                        label="Rate"
+                        label={tr.rate}
                         type="number"
                         step="0.01"
                         min="0"
@@ -156,7 +161,7 @@ export const InvoiceItemsForm: React.FC<InvoiceItemsFormProps> = ({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Total
+                    {tr.total}
                   </label>
                   <div className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-900">
                     {formatCurrency(
@@ -175,14 +180,14 @@ export const InvoiceItemsForm: React.FC<InvoiceItemsFormProps> = ({
       {/* Discounts Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Discounts</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{tr.discounts}</h3>
           <Button
             type="button"
             onClick={handleAddDiscount}
             variant="outline"
             size="sm"
           >
-            + Add Discount
+            {tr.addDiscount}
           </Button>
         </div>
 
@@ -201,8 +206,8 @@ export const InvoiceItemsForm: React.FC<InvoiceItemsFormProps> = ({
                       <Input
                         {...field}
                         value={field.value ?? ""}
-                        label="Discount Description"
-                        placeholder="Enter discount description"
+                        label={tr.discountDescription}
+                        placeholder={tr.discountDescription}
                       />
                     )}
                   />
@@ -222,7 +227,7 @@ export const InvoiceItemsForm: React.FC<InvoiceItemsFormProps> = ({
                           const value = e.target.value === "" ? 0 : parseFloat(e.target.value) || 0;
                           field.onChange(value);
                         }}
-                        label="Amount"
+                        label={tr.amount}
                         type="number"
                         step="0.01"
                         min="0"
@@ -251,12 +256,12 @@ export const InvoiceItemsForm: React.FC<InvoiceItemsFormProps> = ({
       {/* Invoice Summary */}
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Invoice Summary
+          {tr.invoiceSummary}
         </h3>
 
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span>Subtotal:</span>
+            <span>{tr.subtotal}:</span>
             <span>
               {formatCurrency(
                 calculations.subtotal,
@@ -267,7 +272,7 @@ export const InvoiceItemsForm: React.FC<InvoiceItemsFormProps> = ({
 
           {calculations.discountTotal !== 0 && (
             <div className="flex justify-between">
-              <span>Discount:</span>
+              <span>{tr.discount}:</span>
               <span>
                 {formatCurrency(
                   calculations.discountTotal,
@@ -279,7 +284,7 @@ export const InvoiceItemsForm: React.FC<InvoiceItemsFormProps> = ({
 
           {(watchedData.taxRate || 0) > 0 && (
             <div className="flex justify-between">
-              <span>Tax ({watchedData.taxRate || 0}%):</span>
+              <span>{tr.tax} ({watchedData.taxRate || 0}%):</span>
               <span>
                 {formatCurrency(
                   calculations.taxAmount,
@@ -291,7 +296,7 @@ export const InvoiceItemsForm: React.FC<InvoiceItemsFormProps> = ({
 
           <div className="border-t border-gray-300 pt-2">
             <div className="flex justify-between font-semibold text-base">
-              <span>Total:</span>
+              <span>{tr.total}:</span>
               <span>
                 {formatCurrency(
                   calculations.totalAmount,

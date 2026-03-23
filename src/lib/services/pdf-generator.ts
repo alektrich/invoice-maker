@@ -9,6 +9,22 @@ import {
   InvoiceTemplate,
   InvoiceTemplatePalette,
 } from "@/lib/templates/invoice-templates";
+import { t } from "@/lib/i18n/translations";
+
+// jsPDF built-in fonts lack Serbian latin glyphs (Š,Đ,Č,Ć,Ž etc.)
+// Transliterate to ASCII equivalents for correct PDF rendering.
+const serbianCharMap: Record<string, string> = {
+  "Š": "S",
+  "Đ": "DJ",
+  "Č": "C",
+  "Ć": "C",
+  "Ž": "Z",
+};
+const serbianRegex = new RegExp(Object.keys(serbianCharMap).join("|"), "g");
+
+function transliterateSrb(text: string): string {
+  return text.replace(serbianRegex, (ch) => serbianCharMap[ch] || ch);
+}
 
 export class InvoicePDFGenerator {
   private doc: jsPDF;
@@ -52,6 +68,32 @@ export class InvoicePDFGenerator {
     this.doc.setDrawColor(color[0], color[1], color[2]);
   }
 
+  private get lang() {
+    return this.invoice.language || "en";
+  }
+
+  private get tr() {
+    return t(this.lang);
+  }
+
+  private get dateLocale() {
+    return this.lang === "sr" ? "sr-Latn" : "en-US";
+  }
+
+  private get isRSD() {
+    return this.invoice.currency === "RSD";
+  }
+
+  /** Transliterate Serbian special chars for jsPDF rendering */
+  private pdfText(text: string): string {
+    return this.lang === "sr" ? transliterateSrb(text) : text;
+  }
+
+  private formatAmount(amount: number): string {
+    const formatted = amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return this.isRSD ? formatted : `${this.invoice.currency} ${formatted}`;
+  }
+
   private addHeader(): void {
     this.setFillColor(this.palette.accent);
     this.doc.rect(0, 0, this.pageWidth, 90, "F");
@@ -59,7 +101,7 @@ export class InvoicePDFGenerator {
     this.doc.setFont("helvetica", "bold");
     this.doc.setFontSize(26);
     this.doc.setTextColor(255, 255, 255);
-    this.doc.text("INVOICE", this.margin, 45);
+    this.doc.text(this.tr.invoice, this.margin, 45);
 
     this.doc.setFont("helvetica", "normal");
     this.doc.setFontSize(12);
@@ -72,25 +114,25 @@ export class InvoicePDFGenerator {
     this.doc.setFont("helvetica", "bold");
     this.doc.setFontSize(12);
     this.setTextColor(this.palette.headerText);
-    this.doc.text("Invoice Details", this.margin, yPos);
+    this.doc.text(this.tr.invoiceDetails, this.margin, yPos);
     yPos += 24;
 
     this.doc.setFont("helvetica", "normal");
     this.doc.setFontSize(10);
 
     const details: Array<[string, string]> = [
-      ["Invoice ID", this.invoice.invoiceId],
+      [this.tr.invoiceId, this.invoice.invoiceId],
       [
-        "Invoice Date",
-        new Date(this.invoice.invoiceDate).toLocaleDateString("en-US", {
+        this.tr.invoiceDate,
+        new Date(this.invoice.invoiceDate).toLocaleDateString(this.dateLocale, {
           year: "numeric",
           month: "long",
           day: "numeric",
         }),
       ],
       [
-        "Due Date",
-        new Date(this.invoice.dueDate).toLocaleDateString("en-US", {
+        this.tr.dueDate,
+        new Date(this.invoice.dueDate).toLocaleDateString(this.dateLocale, {
           year: "numeric",
           month: "long",
           day: "numeric",
@@ -98,14 +140,18 @@ export class InvoicePDFGenerator {
       ],
     ];
 
+    if (this.lang === "sr" && this.invoice.placeOfIssue) {
+      details.push([this.tr.placeOfIssue, this.invoice.placeOfIssue]);
+    }
+
     details.forEach(([label, value]) => {
       this.doc.setFont("helvetica", "bold");
       this.setTextColor(this.palette.headerSubtext);
-      this.doc.text(`${label}:`, this.margin, yPos);
+      this.doc.text(`${this.pdfText(label)}:`, this.margin, yPos);
 
       this.doc.setFont("helvetica", "normal");
       this.setTextColor(this.palette.bodyText);
-      this.doc.text(value, this.margin + 90, yPos);
+      this.doc.text(this.pdfText(value), this.margin + 90, yPos);
       yPos += 18;
     });
 
@@ -116,10 +162,10 @@ export class InvoicePDFGenerator {
   private addPartiesInfo(): void {
     const yStart = 280;
 
-    this.addContactInfo(this.invoice.issuer, "Bill From", this.margin, yStart);
+    this.addContactInfo(this.invoice.issuer, this.tr.billFrom, this.margin, yStart);
     this.addContactInfo(
       this.invoice.client,
-      "Bill To",
+      this.tr.billTo,
       this.pageWidth / 2,
       yStart
     );
@@ -143,16 +189,19 @@ export class InvoicePDFGenerator {
     this.doc.setFontSize(10);
     this.setTextColor(this.palette.bodyText);
 
+    const maxWidth = this.pageWidth / 2 - this.margin - 10;
+
     if (contact.companyName) {
       this.doc.setFont("helvetica", "bold");
       this.setTextColor(this.palette.headerText);
-      this.doc.text(contact.companyName, x, yPos);
-      yPos += 16;
+      const lines = this.doc.splitTextToSize(this.pdfText(contact.companyName), maxWidth);
+      this.doc.text(lines, x, yPos);
+      yPos += 16 * lines.length;
       this.doc.setFont("helvetica", "normal");
       this.setTextColor(this.palette.bodyText);
     }
 
-    const excludeContact = title === "Bill From";
+    const excludeContact = title === this.tr.billFrom;
 
     const contactLines = [
       contact.contactPerson,
@@ -162,11 +211,17 @@ export class InvoicePDFGenerator {
       contact.country,
       !excludeContact ? contact.phone : "",
       !excludeContact ? contact.email : "",
-      contact.taxId ? `Tax ID: ${contact.taxId}` : "",
+      contact.taxId ? `${this.tr.taxId}: ${contact.taxId.replace(/\s+/g, "").trim()}` : "",
     ].filter((value): value is string => Boolean(value));
 
     contactLines.forEach((line) => {
-      this.doc.text(line, x, yPos);
+      // Transliterate Serbian chars first, then strip remaining non-ASCII
+      const transliterated = this.pdfText(line);
+      const clean = transliterated.replace(/[^\x20-\x7E]/g, (ch) => {
+        if (ch.charCodeAt(0) >= 0x00C0 && ch.charCodeAt(0) <= 0x024F) return ch;
+        return "";
+      }).trim();
+      this.doc.text(clean, x, yPos);
       yPos += 14;
     });
   }
@@ -177,7 +232,7 @@ export class InvoicePDFGenerator {
     this.doc.setFont("helvetica", "bold");
     this.doc.setFontSize(10);
 
-    const headers = ["Description", "Qty", "Rate", "Total"];
+    const headers = [this.tr.description, this.tr.qty, this.tr.rate, this.tr.total];
     const availableWidth = this.pageWidth - this.margin * 2;
     const colWidths = [260, 60, 80, availableWidth - 260 - 60 - 80];
     const colPositions = [this.margin];
@@ -221,12 +276,8 @@ export class InvoicePDFGenerator {
       const rowData = [
         item.description,
         item.quantity.toString(),
-        `${this.invoice.currency} ${item.rate
-          .toFixed(2)
-          .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
-        `${this.invoice.currency} ${total
-          .toFixed(2)
-          .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
+        this.formatAmount(item.rate),
+        this.formatAmount(total),
       ];
 
       if (index % 2 === 1) {
@@ -261,9 +312,7 @@ export class InvoicePDFGenerator {
       this.setTextColor(this.palette.headerSubtext);
 
       this.invoice.discounts.forEach((discount) => {
-        const amountText = `- ${this.invoice.currency} ${discount.amount
-          .toFixed(2)
-          .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+        const amountText = `- ${this.formatAmount(discount.amount)}`;
 
         this.doc.text(discount.description, colPositions[0], yPos);
 
@@ -290,31 +339,39 @@ export class InvoicePDFGenerator {
     this.doc.setFont("helvetica", "normal");
     this.doc.setFontSize(10);
 
+    const fmt = (amount: number) => this.isRSD
+      ? this.formatAmount(amount)
+      : formatCurrency(amount, this.invoice.currency);
+
     const totals: Array<[string, string]> = [
-      ["Subtotal", formatCurrency(calculations.subtotal, this.invoice.currency)],
+      [this.tr.subtotal, fmt(calculations.subtotal)],
     ];
 
     if (calculations.discountTotal !== 0) {
       const discountLabel =
         this.invoice.discounts.length === 1
           ? this.invoice.discounts[0].description
-          : "Discount";
+          : this.tr.discount;
       totals.push([
         discountLabel,
-        formatCurrency(calculations.discountTotal, this.invoice.currency),
+        fmt(calculations.discountTotal),
       ]);
     }
 
     if (this.invoice.taxRate > 0) {
       totals.push([
-        `Tax (${this.invoice.taxRate}%)`,
-        formatCurrency(calculations.taxAmount, this.invoice.currency),
+        `${this.tr.tax} (${this.invoice.taxRate}%)`,
+        fmt(calculations.taxAmount),
       ]);
     }
 
+    const totalDueLabel = this.isRSD
+      ? `${this.tr.totalDue} (RSD)`
+      : this.tr.totalDue;
+
     totals.push([
-      "Total Due",
-      formatCurrency(calculations.totalAmount, this.invoice.currency),
+      totalDueLabel,
+      fmt(calculations.totalAmount),
     ]);
 
     totals.forEach(([label, amount], index) => {
@@ -345,6 +402,15 @@ export class InvoicePDFGenerator {
 
       yPos += isTotal ? 30 : 22;
     });
+
+    // Bank account for Serbian invoices
+    if (this.lang === "sr" && this.invoice.bankAccount) {
+      yPos += 10;
+      this.doc.setFont("helvetica", "bold");
+      this.doc.setFontSize(10);
+      this.setTextColor(this.palette.headerText);
+      this.doc.text(`${this.tr.bankAccount}: ${this.invoice.bankAccount}`, this.margin, yPos);
+    }
   }
 
   private addFooter(): void {
@@ -360,11 +426,11 @@ export class InvoicePDFGenerator {
     const contactInfo: string[] = [];
 
     if (this.invoice.issuer.email) {
-      contactInfo.push(`Email: ${this.invoice.issuer.email}`);
+      contactInfo.push(`${this.tr.email}: ${this.invoice.issuer.email}`);
     }
 
     if (this.invoice.issuer.phone) {
-      contactInfo.push(`Phone: ${this.invoice.issuer.phone}`);
+      contactInfo.push(`${this.tr.phone}: ${this.invoice.issuer.phone}`);
     }
 
     if (contactInfo.length > 0) {
@@ -372,6 +438,27 @@ export class InvoicePDFGenerator {
       const textWidth = this.doc.getTextWidth(footerText);
       const xPos = (this.pageWidth - textWidth) / 2;
       this.doc.text(footerText, xPos, yPos);
+    }
+
+    if (this.lang === "sr") {
+      let footerY = yPos + 14;
+
+      if (this.invoice.vatExemptNote) {
+        this.doc.setFont("helvetica", "italic");
+        this.doc.setFontSize(7);
+        this.setTextColor(this.palette.footerText);
+        const vatText = this.tr.vatExemptText;
+        const vatWidth = this.doc.getTextWidth(vatText);
+        this.doc.text(vatText, (this.pageWidth - vatWidth) / 2, footerY);
+        footerY += 12;
+      }
+
+      const disclaimer = "Dokument je izradjen na racunaru i punovazan je i bez pecata i potpisa";
+      this.doc.setFont("helvetica", "italic");
+      this.doc.setFontSize(7);
+      this.setTextColor(this.palette.footerText);
+      const disclaimerWidth = this.doc.getTextWidth(disclaimer);
+      this.doc.text(disclaimer, (this.pageWidth - disclaimerWidth) / 2, footerY);
     }
   }
 }

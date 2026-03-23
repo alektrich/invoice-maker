@@ -5,12 +5,14 @@ import {
   INVOICE_TEMPLATES,
   InvoiceTemplate,
 } from "@/lib/templates/invoice-templates";
+import { Language, t } from "@/lib/i18n/translations";
 
 interface TemplateSelectorProps {
   selectedTemplateId: string;
   onSelect: (templateId: string) => void;
   onContinue: () => void;
   isContinueDisabled?: boolean;
+  language: Language;
 }
 
 const TemplatePreview: React.FC<{ template: InvoiceTemplate }> = ({
@@ -33,19 +35,21 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   onSelect,
   onContinue,
   isContinueDisabled = false,
+  language,
 }) => {
+  const tr = t(language);
+
   return (
     <div className="space-y-8">
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-          Step 1 of 2
+          {tr.step1of2}
         </span>
         <h1 className="mt-2 text-3xl font-bold text-gray-900">
-          Choose an Invoice Template
+          {tr.chooseTemplate}
         </h1>
         <p className="mt-1 text-sm text-gray-600">
-          Select the look and feel for your invoice. You can adjust the details
-          on the next step.
+          {tr.chooseTemplateDesc}
         </p>
       </div>
 
@@ -131,16 +135,6 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
               <div className="mt-6">
                 <TemplatePreview template={template} />
               </div>
-
-              {/* <div className="!mt-3 flex items-center justify-between text-sm">
-                <span className="font-medium text-gray-500">Accent</span>
-                <span
-                  className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
-                  style={{ backgroundColor: template.accentHex }}
-                >
-                  {template.accentHex.toUpperCase()}
-                </span>
-              </div> */}
             </button>
           );
         })}
@@ -148,7 +142,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-gray-600">
-          You can always return to this step to switch templates later.
+          {tr.canReturnToSwitch}
         </p>
         <Button
           type="button"
@@ -156,7 +150,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
           disabled={isContinueDisabled}
           className="sm:w-auto"
         >
-          Next: Invoice Form
+          {tr.nextInvoiceForm}
         </Button>
       </div>
     </div>

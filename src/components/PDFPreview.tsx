@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Button } from "./ui/Button";
 import { getInvoiceTemplate } from "@/lib/templates/invoice-templates";
+import { Language, t } from "@/lib/i18n/translations";
 
 interface PDFPreviewProps {
   pdfBlob: Blob | null;
@@ -10,6 +11,7 @@ interface PDFPreviewProps {
   templateId?: string;
   step?: 1 | 2;
   onDownload?: () => void;
+  language: Language;
 }
 
 export const PDFPreview: React.FC<PDFPreviewProps> = ({
@@ -18,9 +20,11 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
   templateId,
   step,
   onDownload,
+  language,
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  
+  const tr = t(language);
+
   const template = useMemo(() => {
     if (templateId) {
       return getInvoiceTemplate(templateId);
@@ -49,7 +53,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
 
     return (
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-gray-900">Template Preview</h2>
+        <h2 className="text-xl font-semibold text-gray-900">{tr.templatePreview}</h2>
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <div className="space-y-6">
             {/* Header */}
@@ -59,7 +63,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-2xl font-bold text-white">INVOICE</h3>
+                  <h3 className="text-2xl font-bold text-white">{tr.invoice}</h3>
                   <p className="mt-1 text-sm text-white/90">#INV-2025-001</p>
                 </div>
               </div>
@@ -68,19 +72,19 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
             {/* Invoice Details */}
             <div className="px-6">
               <h4 className="mb-3 text-sm font-semibold" style={{ color: template.accentHex }}>
-                Invoice Details
+                {tr.invoiceDetails}
               </h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Invoice ID:</span>
+                  <span className="text-gray-600">{tr.invoiceId}:</span>
                   <span className="font-medium text-gray-900">INV-2025-001</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Invoice Date:</span>
+                  <span className="text-gray-600">{tr.invoiceDate}:</span>
                   <span className="font-medium text-gray-900">January 15, 2025</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Due Date:</span>
+                  <span className="text-gray-600">{tr.dueDate}:</span>
                   <span className="font-medium text-gray-900">February 14, 2025</span>
                 </div>
               </div>
@@ -90,20 +94,20 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
             <div className="grid grid-cols-2 gap-6 px-6">
               <div>
                 <h4 className="mb-2 text-sm font-semibold" style={{ color: template.accentHex }}>
-                  Bill From
+                  {tr.billFrom}
                 </h4>
                 <div className="space-y-1 text-sm text-gray-700">
-                  <p className="font-semibold">Your Company Name</p>
+                  <p className="font-semibold">{tr.yourCompanyName}</p>
                   <p>123 Business Street</p>
                   <p>City, State 12345</p>
                 </div>
               </div>
               <div>
                 <h4 className="mb-2 text-sm font-semibold" style={{ color: template.accentHex }}>
-                  Bill To
+                  {tr.billTo}
                 </h4>
                 <div className="space-y-1 text-sm text-gray-700">
-                  <p className="font-semibold">Client Company Name</p>
+                  <p className="font-semibold">{tr.clientCompanyName}</p>
                   <p>456 Client Avenue</p>
                   <p>City, State 67890</p>
                 </div>
@@ -120,15 +124,15 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
                 }}
               >
                 <div className="grid grid-cols-4 gap-4">
-                  <div>Description</div>
-                  <div className="text-right">Qty</div>
-                  <div className="text-right">Rate</div>
-                  <div className="text-right">Total</div>
+                  <div>{tr.description}</div>
+                  <div className="text-right">{tr.qty}</div>
+                  <div className="text-right">{tr.rate}</div>
+                  <div className="text-right">{tr.total}</div>
                 </div>
               </div>
               <div className="divide-y border-x border-b border-gray-200">
                 <div className="grid grid-cols-4 gap-4 px-4 py-3 text-sm">
-                  <div>Service</div>
+                  <div>{tr.service}</div>
                   <div className="text-right">2</div>
                   <div className="text-right">$150.00</div>
                   <div className="text-right font-medium">$300.00</div>
@@ -137,7 +141,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
                   className="grid grid-cols-4 gap-4 px-4 py-3 text-sm"
                   style={{ backgroundColor: template.palette.accentLight.toString() }}
                 >
-                  <div>Another Service</div>
+                  <div>{tr.anotherService}</div>
                   <div className="text-right">1</div>
                   <div className="text-right">$200.00</div>
                   <div className="text-right font-medium">$200.00</div>
@@ -147,7 +151,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
           </div>
         </div>
         <div className="text-center text-sm text-gray-500">
-          <p>Preview of selected template with sample content</p>
+          <p>{tr.previewSampleContent}</p>
         </div>
       </div>
     );
@@ -176,10 +180,10 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
             />
           </svg>
           <h3 className="mt-2 text-sm font-medium text-gray-900">
-            No PDF generated yet
+            {tr.noPdfYet}
           </h3>
           <p className="mt-1 text-sm text-gray-500">
-            Fill out the form and click "Generate Invoice PDF" to see the preview.
+            {tr.noPdfYetDesc}
           </p>
         </div>
       </div>
@@ -195,10 +199,10 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900">Invoice Preview</h2>
+        <h2 className="text-xl font-semibold text-gray-900">{tr.invoicePreview}</h2>
         {onDownload && (
           <Button onClick={onDownload} variant="outline">
-            Download PDF
+            {tr.downloadPdf}
           </Button>
         )}
       </div>
@@ -208,13 +212,13 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
           <iframe
             src={previewUrl}
             className="h-[600px] w-full rounded-md"
-            title={invoiceId ? `Invoice ${invoiceId} preview` : "Invoice preview"}
+            title={invoiceId ? `${tr.previewOfInvoice} ${invoiceId}` : tr.invoicePreview}
           />
         ) : (
           <div className="flex h-[600px] items-center justify-center">
             <div className="text-center">
               <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-primary-500" />
-              <p className="mt-4 text-sm text-gray-500">Loading PDF preview…</p>
+              <p className="mt-4 text-sm text-gray-500">{tr.loadingPreview}</p>
             </div>
           </div>
         )}
@@ -222,7 +226,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
 
       {invoiceId && (
         <div className="text-center text-sm text-gray-500">
-          <p>Preview of invoice {invoiceId}</p>
+          <p>{tr.previewOfInvoice} {invoiceId}</p>
         </div>
       )}
     </div>

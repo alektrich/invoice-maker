@@ -1,20 +1,24 @@
 import React from "react";
 import { Control, useController } from "react-hook-form";
 import { Input } from "@/components/ui/Input";
-import { ContactInfo } from "@/types/invoice";
 import { InvoiceFormValues } from "@/lib/validations/invoice";
+import { Language, t } from "@/lib/i18n/translations";
 
 interface ContactInfoFormProps {
   control: Control<InvoiceFormValues>;
   name: "issuer" | "client";
   title: string;
+  language: Language;
 }
 
 export const ContactInfoForm: React.FC<ContactInfoFormProps> = ({
   control,
   name,
   title,
+  language,
 }) => {
+  const tr = t(language);
+
   const { field: companyNameField, fieldState: companyNameState } =
     useController({
       control,
@@ -81,83 +85,83 @@ export const ContactInfoForm: React.FC<ContactInfoFormProps> = ({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Input
           {...companyNameField}
-          label="Company Name *"
+          label={tr.companyName}
           error={companyNameState.error?.message}
-          placeholder="Enter company name"
+          placeholder={tr.companyName.replace(" *", "")}
         />
 
         <Input
           {...contactPersonField}
-          label="Contact Person"
+          label={tr.contactPerson}
           error={contactPersonState.error?.message}
-          placeholder="Enter contact person name"
+          placeholder={tr.contactPerson}
         />
 
         <Input
           {...addressLine1Field}
-          label="Address Line 1"
+          label={tr.addressLine1}
           error={addressLine1State.error?.message}
-          placeholder="Enter street address"
+          placeholder={tr.addressLine1}
           className="sm:col-span-2"
         />
 
         <Input
           {...addressLine2Field}
-          label="Address Line 2"
+          label={tr.addressLine2}
           error={addressLine2State.error?.message}
-          placeholder="Enter suite, unit, etc."
+          placeholder={tr.addressLine2}
           className="sm:col-span-2"
         />
 
         <Input
           {...cityField}
-          label="City"
+          label={tr.city}
           error={cityState.error?.message}
-          placeholder="Enter city"
+          placeholder={tr.city}
         />
 
         <Input
           {...stateField}
-          label="State/Province"
+          label={tr.stateProvince}
           error={stateState.error?.message}
-          placeholder="Enter state or province"
+          placeholder={tr.stateProvince}
         />
 
         <Input
           {...zipCodeField}
-          label="ZIP/Postal Code"
+          label={tr.zipCode}
           error={zipCodeState.error?.message}
-          placeholder="Enter ZIP or postal code"
+          placeholder={tr.zipCode}
         />
 
         <Input
           {...countryField}
-          label="Country"
+          label={tr.country}
           error={countryState.error?.message}
-          placeholder="Enter country"
+          placeholder={tr.country}
         />
 
         <Input
           {...phoneField}
-          label="Phone"
+          label={tr.phone}
           error={phoneState.error?.message}
-          placeholder="Enter phone number"
+          placeholder={tr.phone}
           type="tel"
         />
 
         <Input
           {...emailField}
-          label="Email"
+          label={tr.email}
           error={emailState.error?.message}
-          placeholder="Enter email address"
+          placeholder={tr.email}
           type="email"
         />
 
         <Input
           {...taxIdField}
-          label="Tax ID"
+          label={tr.taxId}
           error={taxIdState.error?.message}
-          placeholder="Enter tax ID"
+          placeholder={tr.taxId}
           className="sm:col-span-2"
         />
       </div>
