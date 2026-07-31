@@ -1,11 +1,16 @@
-const path = require('path');
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  experimental: {
-    typedRoutes: true,
+  typedRoutes: true,
+  // Turbopack (default bundler in Next 16) equivalent of the webpack canvas
+  // stubbing below — pdfjs-dist optionally requires the Node.js `canvas` module.
+  turbopack: {
+    root: __dirname,
+    resolveAlias: {
+      canvas: './src/lib/empty-module.js',
+    },
   },
+  // Only used when running with `--webpack`.
   webpack: (config, { isServer, webpack }) => {
     // Configure webpack for pdfjs-dist
     if (!isServer) {
