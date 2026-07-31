@@ -1,5 +1,10 @@
 import React from "react";
-import { Control, useFieldArray, Controller } from "react-hook-form";
+import {
+  Control,
+  useFieldArray,
+  Controller,
+  UseFormWatch,
+} from "react-hook-form";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { InvoiceFormValues } from "@/lib/validations/invoice";
@@ -11,7 +16,7 @@ import { Language, t } from "@/lib/i18n/translations";
 
 interface InvoiceItemsFormProps {
   control: Control<InvoiceFormValues>;
-  watch: (name?: string) => any;
+  watch: UseFormWatch<InvoiceFormValues>;
   language: Language;
 }
 

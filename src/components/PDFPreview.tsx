@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Button } from "./ui/Button";
 import { getInvoiceTemplate } from "@/lib/templates/invoice-templates";
 import { Language, t } from "@/lib/i18n/translations";
@@ -22,7 +22,6 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
   onDownload,
   language,
 }) => {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const tr = t(language);
 
   const template = useMemo(() => {
@@ -32,21 +31,20 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
     return null;
   }, [templateId]);
 
+  const previewUrl = useMemo(
+    () => (pdfBlob ? URL.createObjectURL(pdfBlob) : null),
+    [pdfBlob]
+  );
+
+  // Revoke the object URL when the component unmounts or the blob changes.
   useEffect(() => {
-    if (!pdfBlob) {
-      setPreviewUrl(null);
+    if (!previewUrl) {
       return;
     }
-
-    // Create object URL for the PDF blob
-    const url = URL.createObjectURL(pdfBlob);
-    setPreviewUrl(url);
-
-    // Cleanup: revoke the object URL when component unmounts or blob changes
     return () => {
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(previewUrl);
     };
-  }, [pdfBlob]);
+  }, [previewUrl]);
 
   const renderTemplatePreview = () => {
     if (!template) return null;
@@ -208,20 +206,11 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
       </div>
 
       <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-        {previewUrl ? (
-          <iframe
-            src={previewUrl}
-            className="h-[600px] w-full rounded-md"
-            title={invoiceId ? `${tr.previewOfInvoice} ${invoiceId}` : tr.invoicePreview}
-          />
-        ) : (
-          <div className="flex h-[600px] items-center justify-center">
-            <div className="text-center">
-              <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-primary-500" />
-              <p className="mt-4 text-sm text-gray-500">{tr.loadingPreview}</p>
-            </div>
-          </div>
-        )}
+        <iframe
+          src={previewUrl ?? undefined}
+          className="h-[600px] w-full rounded-md"
+          title={invoiceId ? `${tr.previewOfInvoice} ${invoiceId}` : tr.invoicePreview}
+        />
       </div>
 
       {invoiceId && (

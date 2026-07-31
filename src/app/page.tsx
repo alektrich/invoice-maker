@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { InvoiceForm } from "@/components/forms/InvoiceForm";
 import { PDFPreview } from "@/components/PDFPreview";
 import { downloadPDF } from "@/lib/services/pdf-generator";
@@ -11,16 +11,33 @@ import {
 } from "@/lib/constants/storage";
 import { DEFAULT_TEMPLATE_ID } from "@/lib/templates/invoice-templates";
 import { Language, t } from "@/lib/i18n/translations";
+import { useLocalStorageState } from "@/lib/hooks/use-local-storage-state";
+
+const parseTemplateId = (raw: string) => raw;
+const parseLanguage = (raw: string): Language | null =>
+  raw === "en" || raw === "sr" ? raw : null;
 
 export default function HomePage() {
   const [generatedPDF, setGeneratedPDF] = useState<Blob | null>(null);
   const [currentInvoiceId, setCurrentInvoiceId] = useState<string>("");
   const [step, setStep] = useState<1 | 2>(1);
-  const [selectedTemplateId, setSelectedTemplateId] =
-    useState<string>(DEFAULT_TEMPLATE_ID);
-  const [language, setLanguage] = useState<Language>("en");
+  const [selectedTemplateId, setSelectedTemplateId] = useLocalStorageState(
+    INVOICE_TEMPLATE_STORAGE_KEY,
+    DEFAULT_TEMPLATE_ID,
+    parseTemplateId
+  );
+  const [language, setLanguage] = useLocalStorageState<Language>(
+    INVOICE_LANGUAGE_STORAGE_KEY,
+    "en",
+    parseLanguage
+  );
 
   const tr = t(language);
+
+  const clearGeneratedPDF = () => {
+    setGeneratedPDF(null);
+    setCurrentInvoiceId("");
+  };
 
   const handlePDFGenerated = (pdfBlob: Blob, invoiceId?: string) => {
     setGeneratedPDF(pdfBlob);
@@ -35,54 +52,19 @@ export default function HomePage() {
     }
   };
 
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    const storedTemplate = localStorage.getItem(
-      INVOICE_TEMPLATE_STORAGE_KEY
-    );
-    if (storedTemplate) {
-      setSelectedTemplateId(storedTemplate);
-    }
-    const storedLanguage = localStorage.getItem(INVOICE_LANGUAGE_STORAGE_KEY);
-    if (storedLanguage === "en" || storedLanguage === "sr") {
-      setLanguage(storedLanguage);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    localStorage.setItem(
-      INVOICE_TEMPLATE_STORAGE_KEY,
-      selectedTemplateId
-    );
-  }, [selectedTemplateId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    localStorage.setItem(INVOICE_LANGUAGE_STORAGE_KEY, language);
-  }, [language]);
-
-  useEffect(() => {
-    setGeneratedPDF(null);
-    setCurrentInvoiceId("");
-  }, [selectedTemplateId, step]);
-
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplateId(templateId);
+    clearGeneratedPDF();
   };
 
   const handleContinueToForm = () => {
     setStep(2);
+    clearGeneratedPDF();
   };
 
   const handleBackToTemplates = () => {
     setStep(1);
+    clearGeneratedPDF();
   };
 
   return (
