@@ -74,6 +74,11 @@ export interface Translations {
   vatExemptNote: string;
   vatExemptText: string;
   placeOfIssue: string;
+  paymentInstructions: string;
+  includePaymentInstructions: string;
+  beneficiaryBankSwift: string;
+  beneficiaryIban: string;
+  correspondentBankSwift: string;
 }
 
 const en: Translations = {
@@ -148,6 +153,11 @@ const en: Translations = {
   vatExemptNote: "Include VAT exemption note",
   vatExemptText: "",
   placeOfIssue: "Place of Issue",
+  paymentInstructions: "Payment Instructions",
+  includePaymentInstructions: "Include payment instructions",
+  beneficiaryBankSwift: "Beneficiary Bank SWIFT (BIC)",
+  beneficiaryIban: "Beneficiary IBAN",
+  correspondentBankSwift: "Correspondent Bank SWIFT (BIC)",
 };
 
 const sr: Translations = {
@@ -222,6 +232,11 @@ const sr: Translations = {
   vatExemptNote: "Firma nije u sistemu PDV-a",
   vatExemptText: "PDV nije obracunat u skladu sa clanom 33. Zakona o porezu na dodatu vrednost (firma nije u sistemu PDV-a).",
   placeOfIssue: "Mesto izdavanja",
+  paymentInstructions: "Instrukcije za placanje",
+  includePaymentInstructions: "Ukljuci instrukcije za placanje",
+  beneficiaryBankSwift: "SWIFT (BIC) banke primaoca",
+  beneficiaryIban: "IBAN primaoca",
+  correspondentBankSwift: "SWIFT (BIC) korespondentne banke",
 };
 
 export const translations: Record<Language, Translations> = { en, sr };

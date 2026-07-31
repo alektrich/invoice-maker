@@ -91,6 +91,10 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
       bankAccount: "",
       vatExemptNote: false,
       placeOfIssue: "",
+      includePaymentInstructions: false,
+      beneficiaryBankSwift: "",
+      beneficiaryIban: "",
+      correspondentBankSwift: "",
     };
   }
 
@@ -488,6 +492,65 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
                   <span className="text-sm text-gray-700">{tr.vatExemptNote}</span>
                 </label>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Payment Instructions */}
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">
+            {tr.paymentInstructions}
+          </h2>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              {...register("includePaymentInstructions")}
+              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span className="text-sm text-gray-700">
+              {tr.includePaymentInstructions}
+            </span>
+          </label>
+
+          {watchedData.includePaymentInstructions && (
+            <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <Controller
+                name="beneficiaryBankSwift"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    value={field.value || ""}
+                    label={tr.beneficiaryBankSwift}
+                    placeholder="RZBSRSBG"
+                  />
+                )}
+              />
+              <Controller
+                name="beneficiaryIban"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    value={field.value || ""}
+                    label={tr.beneficiaryIban}
+                    placeholder="RS35265100000026503070"
+                  />
+                )}
+              />
+              <Controller
+                name="correspondentBankSwift"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    value={field.value || ""}
+                    label={tr.correspondentBankSwift}
+                    placeholder="RZBAATWW"
+                  />
+                )}
+              />
             </div>
           )}
         </div>

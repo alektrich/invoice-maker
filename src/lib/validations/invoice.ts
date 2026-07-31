@@ -43,6 +43,10 @@ export const invoiceFormSchema = z
     bankAccount: z.string().optional().default(""),
     vatExemptNote: z.boolean().optional().default(false),
     placeOfIssue: z.string().optional().default(""),
+    includePaymentInstructions: z.boolean().optional().default(false),
+    beneficiaryBankSwift: z.string().optional().default(""),
+    beneficiaryIban: z.string().optional().default(""),
+    correspondentBankSwift: z.string().optional().default(""),
   })
   .refine(
     (data) => {

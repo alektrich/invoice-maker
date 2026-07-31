@@ -34,6 +34,8 @@ export class InvoicePDFGenerator {
   private margin: number;
   private template: InvoiceTemplate;
   private palette: InvoiceTemplatePalette;
+  /** Bottom of the payment instructions block, 0 when it is not rendered */
+  private paymentBottomY = 0;
 
   constructor(invoice: InvoiceData) {
     this.invoice = invoice;
@@ -50,6 +52,7 @@ export class InvoicePDFGenerator {
     this.addInvoiceDetails();
     this.addPartiesInfo();
     this.addItemsTable();
+    this.addPaymentInstructions();
     this.addTotals();
     this.addFooter();
 
@@ -405,12 +408,69 @@ export class InvoicePDFGenerator {
 
     // Bank account for Serbian invoices
     if (this.lang === "sr" && this.invoice.bankAccount) {
-      yPos += 10;
+      // Sits on the left, below the payment instructions block when present
+      yPos = Math.max(yPos + 10, this.paymentBottomY + 14);
       this.doc.setFont("helvetica", "bold");
       this.doc.setFontSize(10);
       this.setTextColor(this.palette.headerText);
       this.doc.text(`${this.tr.bankAccount}: ${this.invoice.bankAccount}`, this.margin, yPos);
     }
+  }
+
+  private addPaymentInstructions(): void {
+    if (!this.invoice.includePaymentInstructions) {
+      return;
+    }
+
+    const rows: Array<[string, string]> = [];
+
+    if (this.invoice.beneficiaryBankSwift) {
+      rows.push([this.tr.beneficiaryBankSwift, this.invoice.beneficiaryBankSwift]);
+    }
+    if (this.invoice.beneficiaryIban) {
+      rows.push([this.tr.beneficiaryIban, this.invoice.beneficiaryIban]);
+    }
+    if (this.invoice.correspondentBankSwift) {
+      rows.push([
+        this.tr.correspondentBankSwift,
+        this.invoice.correspondentBankSwift,
+      ]);
+    }
+
+    if (rows.length === 0) {
+      return;
+    }
+
+    // Rendered small in the left column, above the totals block so it stays
+    // clear of the Total Due band. No pagination support in this generator -
+    // skip rather than overlap the footer if the block cannot fit.
+    const blockHeight = 16 + rows.length * 13;
+    let yPos = 545;
+
+    if (yPos + blockHeight > this.pageHeight - 90) {
+      return;
+    }
+
+    this.doc.setFont("helvetica", "bold");
+    this.doc.setFontSize(10);
+    this.setTextColor(this.palette.headerText);
+    this.doc.text(this.pdfText(this.tr.paymentInstructions), this.margin, yPos);
+    yPos += 16;
+
+    this.doc.setFontSize(8);
+
+    rows.forEach(([label, value]) => {
+      this.doc.setFont("helvetica", "bold");
+      this.setTextColor(this.palette.headerSubtext);
+      this.doc.text(`${this.pdfText(label)}:`, this.margin, yPos);
+
+      this.doc.setFont("helvetica", "normal");
+      this.setTextColor(this.palette.bodyText);
+      this.doc.text(value, this.margin + 150, yPos);
+      yPos += 13;
+    });
+
+    this.paymentBottomY = yPos;
   }
 
   private addFooter(): void {

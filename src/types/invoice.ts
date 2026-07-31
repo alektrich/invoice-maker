@@ -40,6 +40,10 @@ export interface InvoiceData {
   bankAccount?: string;
   vatExemptNote?: boolean;
   placeOfIssue?: string;
+  includePaymentInstructions?: boolean;
+  beneficiaryBankSwift?: string;
+  beneficiaryIban?: string;
+  correspondentBankSwift?: string;
 }
 
 export interface InvoiceCalculations {
